@@ -2,11 +2,8 @@
 #include <cstdbool>
 #include <cstdio>
 #include <cstring>
-#include <omp.h>
 #include <cmath>
 #include <signal.h>
-#include <ctime>
-
 #include "generateur.h"
 
 bool check = 0;
@@ -40,7 +37,7 @@ void gen(Generateur *generateur) {
 }
 void showhelp() {
 	printf(\
-		"RainyGen:\n\n"
+		"RainyCrack:\n\n"
 		
 		" Arguments:\n"
 	  	"./rc [ min max --set | -set | -s \"set\" ] \n"

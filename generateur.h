@@ -1,5 +1,4 @@
-#include <cstdint>
-typedef unsigned __int128       uint_big;
+typedef unsigned __int128 uint_big;
 
 class Generateur {
 	public:
