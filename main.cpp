@@ -77,11 +77,9 @@ int main(int argc, char *argv[]) {
 		    generateur->L = 0;
 		    generateur->A = 0;
 		    int mmm = generateur->max-generateur->min;
-		    generateur->rotate = new uint_big [mmm+1];
 		    generateur->totperlen = new uint_big[mmm+1];
 		    generateur->arrayofindex = new int *[mmm+1];
 		    for(int a=0; a<=mmm; ++a) {
-		    	generateur->rotate[a] = 0;
 		    	generateur->totperlen[a] = 0;    
 		    	generateur->arrayofindex[a] = new int [generateur->max];
 		        for(int i=0; i<generateur->max; ++i)

@@ -15,14 +15,12 @@ void Generateur::restore() {
 	int mmm = Generateur::max-Generateur::min;
 	
 	Generateur::arrayofindex = new int *[mmm+1];
-	Generateur::rotate = new uint_big [mmm+1];
 	Generateur::totperlen = new uint_big [mmm+1];
 	    
 	Generateur::L = (int) strtol(strtok(NULL, ":"), NULL, 10);
 	Generateur::A = (uint_big) strtoul(strtok(NULL, ":"), NULL, 10);
 	
 	for(int a=0; a<=mmm; ++a) {
-	    Generateur::rotate[a] = (uint_big) strtoul(strtok(NULL, ":"), NULL, 10);
 	    Generateur::totperlen[a] = (uint_big) strtoul(strtok(NULL, ":"), NULL, 10);
 	    Generateur::arrayofindex[a] = new int[Generateur::max];
 	 	for(int b=0; b<Generateur::min+a; ++b) {
@@ -40,7 +38,6 @@ void Generateur::save() {
 	fprintf(fd, "%d:", Generateur::loop2);
 	fprintf(fd, "%" PRIu64":", Generateur::a);
 	for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
-	    fprintf(fd, "%" PRIu64":", Generateur::rotate[a]);
 	    fprintf(fd, "%" PRIu64":", Generateur::totperlen[a]);
 	    for(int b=0; b < Generateur::min+a; ++b)
 			fprintf(fd, "%d:", Generateur::arrayofindex[a][b]); 
@@ -48,21 +45,27 @@ void Generateur::save() {
 	exit(0);
 }
 
+static uint_big rotate;
+
 void Generateur::gen_next(int loop, char *tmp) {
 	short int mpl = Generateur::min+loop;
  	
- 	tmp[0] = arrayofchars[arrayofindex[loop][0]];	
-    for(int i=1; i<mpl; ++i) {
-    	tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate[loop])%length];
-    	rotate[loop] -= rotate[loop]/length;
-    }
-    totperlen[loop]++;
-    rotate[loop] = totperlen[loop];
+ 	rotate = totperlen[loop];
+        
+    tmp[0] = arrayofchars[arrayofindex[loop][0]];	
     
-	int pos = 0;
-    while(pos < mpl && ++arrayofindex[loop][pos] >= length) {
+ 	for(int i=1; i<mpl; ++i) {
+    	tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
+        rotate -= totperlen[loop] / length;
+    }
+    
+    totperlen[loop]++;
+    
+    int pos = 0;
+    
+	while(pos < mpl && ++arrayofindex[loop][pos] >= length) {
 	    arrayofindex[loop][pos] = 0;
-	    ++pos;
+	    pos++;
     }
     tmp[mpl] = '\0';
 }
