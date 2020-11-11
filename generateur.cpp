@@ -50,17 +50,15 @@ static uint_big rotate;
 void Generateur::gen_next(int loop, char *tmp) {
 	short int mpl = Generateur::min+loop;
  	
- 	rotate = totperlen[loop];
+ 	uint_big rotate = totperlen[loop];
         
     tmp[0] = arrayofchars[arrayofindex[loop][0]];	
     
  	for(int i=1; i<mpl; ++i) {
     	tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
-        rotate -= totperlen[loop] / length;
+        rotate /= totperlen[loop] % (length/2) + 1;
+        totperlen[loop]+=1+length%2;
     }
-    
-    totperlen[loop]++;
-    
     int pos = 0;
     
 	while(pos < mpl && ++arrayofindex[loop][pos] >= length) {

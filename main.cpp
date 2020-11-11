@@ -28,7 +28,7 @@ void gen(Generateur *generateur) {
 			for(int loop = generateur->loop2; loop <= generateur->max-generateur->min; ++loop) {
 				if(restore)
 					generateur->save();
-				char tmp[generateur->min+loop+1];//\cr \lf
+				char tmp[generateur->min+loop];
 				generateur->gen_next(loop, tmp);
 			    printf("%s\n", tmp);
 			}
