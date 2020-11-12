@@ -56,9 +56,10 @@ void Generateur::gen_next(int loop, char *tmp) {
     
  	for(int i=1; i<mpl; ++i) {
     	tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
-        rotate /= totperlen[loop] % (length/2) + 1;
-        totperlen[loop]+=1+length%2;
+        rotate /= (totperlen[loop]) % (length/2) + 1;
+        totperlen[loop]+=2;
     }
+    
     int pos = 0;
     
 	while(pos < mpl && ++arrayofindex[loop][pos] >= length) {
