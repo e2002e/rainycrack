@@ -3,7 +3,7 @@ typedef unsigned __int128 uint_big;
 class Generateur {
 	public:
 	int **arrayofindex;
-	uint_big *totperlen;
+	uint_big *totCperlen;
 	
 	char *arrayofchars;//the character set
 	uint_big a;

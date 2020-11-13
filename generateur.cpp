@@ -15,13 +15,13 @@ void Generateur::restore() {
 	int mmm = Generateur::max-Generateur::min;
 	
 	Generateur::arrayofindex = new int *[mmm+1];
-	Generateur::totperlen = new uint_big [mmm+1];
+	Generateur::totCperlen = new uint_big [mmm+1];
 	    
 	Generateur::L = (int) strtol(strtok(NULL, ":"), NULL, 10);
 	Generateur::A = (uint_big) strtoul(strtok(NULL, ":"), NULL, 10);
 	
 	for(int a=0; a<=mmm; ++a) {
-	    Generateur::totperlen[a] = (uint_big) strtoul(strtok(NULL, ":"), NULL, 10);
+	    Generateur::totCperlen[a] = (uint_big) strtoul(strtok(NULL, ":"), NULL, 10);
 	    Generateur::arrayofindex[a] = new int[Generateur::max];
 	 	for(int b=0; b<Generateur::min+a; ++b) {
  	    	Generateur::arrayofindex[a][b] = (int) strtol(strtok(NULL, ":"), NULL, 10);
@@ -38,7 +38,7 @@ void Generateur::save() {
 	fprintf(fd, "%d:", Generateur::loop2);
 	fprintf(fd, "%" PRIu64":", Generateur::a);
 	for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
-	    fprintf(fd, "%" PRIu64":", Generateur::totperlen[a]);
+	    fprintf(fd, "%" PRIu64":", Generateur::totCperlen[a]);
 	    for(int b=0; b < Generateur::min+a; ++b)
 			fprintf(fd, "%d:", Generateur::arrayofindex[a][b]); 
 	}
@@ -50,18 +50,17 @@ static uint_big rotate;
 void Generateur::gen_next(int loop, char *tmp) {
 	short int mpl = Generateur::min+loop;
  	
- 	uint_big rotate = totperlen[loop];
+ 	uint_big rotate = totCperlen[loop];
         
     tmp[0] = arrayofchars[arrayofindex[loop][0]];	
     
  	for(int i=1; i<mpl; ++i) {
     	tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
-        rotate /= (totperlen[loop]) % (length/2) + 1;
-        totperlen[loop]+=2;
+        rotate /= (totCperlen[loop]) % (i/2+1) + 1;        
+        
     }
-    
     int pos = 0;
-    
+    totCperlen[loop]+=2;
 	while(pos < mpl && ++arrayofindex[loop][pos] >= length) {
 	    arrayofindex[loop][pos] = 0;
 	    pos++;
