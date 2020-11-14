@@ -47,6 +47,13 @@ void Generateur::save() {
 
 static uint_big rotate;
 
+int accu(int x) {
+    int a = 0, b;
+    for(b=1; b<x; ++b)
+        a+=b;
+    return a;
+}
+
 void Generateur::gen_next(int loop, char *tmp) {
 	short int mpl = Generateur::min+loop;
  	
@@ -54,13 +61,15 @@ void Generateur::gen_next(int loop, char *tmp) {
         
     tmp[0] = arrayofchars[arrayofindex[loop][0]];	
     
+            
+    
  	for(int i=1; i<mpl; ++i) {
     	tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
-        rotate /= (totCperlen[loop]) % (i/2+1) + 1;        
-        
+        rotate -= rotate/length;
+        totCperlen[loop]+=i;
     }
+    totCperlen[loop]-=accu(mpl)-2;
     int pos = 0;
-    totCperlen[loop]+=2;
 	while(pos < mpl && ++arrayofindex[loop][pos] >= length) {
 	    arrayofindex[loop][pos] = 0;
 	    pos++;
