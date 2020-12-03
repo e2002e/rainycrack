@@ -9,6 +9,8 @@
 bool check = 0;
 bool restore = false;
 
+extern uint_big powi(uint32_t b, uint32_t p);
+
 void gen(Generateur *generateur) {
 	for(generateur->loop2=generateur->L; generateur->loop2 <= generateur->max-generateur->min; ++generateur->loop2) {
 		if(restore)
@@ -17,12 +19,11 @@ void gen(Generateur *generateur) {
 		uint_big subtotal = 0;
 
 		if(generateur->loop2 > 0)
-			subtotal = (uint_big) pow((double) generateur->length, (double) (generateur->min+generateur->loop2-1));
+			subtotal = powi(generateur->length, generateur->min+generateur->loop2-1);
 
-		for(generateur->a = generateur->A; \
-				generateur->a < ((uint_big) pow((double) generateur->length,\
-				(double) (generateur->min+generateur->loop2)) - subtotal);
-			++generateur->a) {
+		for(generateur->a = generateur->A; generateur->a < \
+				powi(generateur->length, generateur->min+generateur->loop2) - subtotal;
+				++generateur->a) {
 			if(restore)
 				generateur->save();
 			for(int loop = generateur->loop2; loop <= generateur->max-generateur->min; ++loop) {
@@ -77,10 +78,10 @@ int main(int argc, char *argv[]) {
 		    generateur->L = 0;
 		    generateur->A = 0;
 		    int mmm = generateur->max-generateur->min;
-		    generateur->totperlen = new uint_big[mmm+1];
+		    generateur->rain = new uint_big[mmm+1];
 		    generateur->arrayofindex = new int *[mmm+1];
 		    for(int a=0; a<=mmm; ++a) {
-		    	generateur->totperlen[a] = 0;    
+		    	generateur->rain[a] = 0;    
 		    	generateur->arrayofindex[a] = new int [generateur->max];
 		        for(int i=0; i<generateur->max; ++i)
 		            generateur->arrayofindex[a][i] = 0;
@@ -93,7 +94,7 @@ int main(int argc, char *argv[]) {
 		do {
 			++filesize;
 			getc(fd);
-		} while(!feof(fd)); //SEEK_END isn't supported with fseek
+		} while(!feof(fd));//unroll the whole file to get the character's count.
 		generateur->buff = new char[filesize];
 		fseek(fd, 0, SEEK_SET);
 		fread(generateur->buff, filesize, 1, fd);
