@@ -103,13 +103,6 @@ void Generateur::save() {
 	exit(0);
 }
 
-static int accu(int x) {
-    int a = 0, b;
-    for(b=1; b<x; ++b)
-        a+=b;
-    return a;
-}
-
 void *Generateur::gen_next(int loop, char *tmp) {
 	short int mpl = Generateur::min+loop;
  	uint_big rotate = rain[loop];
