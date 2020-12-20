@@ -7,28 +7,32 @@
 #include "generateur.h"
 
 bool check = 0;
-bool restore = false;
+bool stop = false;
 
 extern uint_big powi(uint32_t b, uint32_t p);
 
+/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
+the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
+This this how we can work on all the lengths at the same time.*/
 void gen(Generateur *generateur) {
 	for(generateur->loop2=generateur->L; generateur->loop2 <= generateur->max-generateur->min; ++generateur->loop2) {
-		if(restore)
+		if(stop)
 			generateur->save();
 
 		uint_big subtotal = 0;
-
 		if(generateur->loop2 > 0)
 			subtotal = powi(generateur->length, generateur->min+generateur->loop2-1);
+		generateur->total = powi(generateur->length, generateur->min+generateur->loop2) - subtotal;
 
-		for(generateur->a = generateur->A; generateur->a < \
-				powi(generateur->length, generateur->min+generateur->loop2) - subtotal;
+		for(generateur->a = generateur->A; generateur->a < generateur->total;
 				++generateur->a) {
-			if(restore)
+			if(stop)
 				generateur->save();
+			
 			for(int loop = generateur->loop2; loop <= generateur->max-generateur->min; ++loop) {
-				if(restore)
+				if(stop)
 					generateur->save();
+				
 				char tmp[generateur->min+loop];
 				generateur->gen_next(loop, tmp);
 			    printf("%s\n", tmp);
@@ -46,8 +50,9 @@ void showhelp() {
 	);
 }
 
+//this sets a global var tested in the gen() function => do we stop ?
 static void signalHandler(int sig) {
-	restore = true;
+	stop = true;
 }
 
 int main(int argc, char *argv[]) {
@@ -77,6 +82,7 @@ int main(int argc, char *argv[]) {
 	    else {
 		    generateur->L = 0;
 		    generateur->A = 0;
+		    generateur->rotate = 0;
 		    int mmm = generateur->max-generateur->min;
 		    generateur->rain = new uint_big[mmm+1];
 		    generateur->arrayofindex = new int *[mmm+1];

@@ -17,7 +17,6 @@ uint_big powi(uint32_t b, uint32_t p)
 		uint_big temp = res * b;
 		res = temp;
 	}
-
 	return res;
 }
 
@@ -103,20 +102,28 @@ void Generateur::save() {
 	exit(0);
 }
 
-void *Generateur::gen_next(int loop, char *tmp) {
-	short int mpl = Generateur::min+loop;
- 	uint_big rotate = rain[loop];
-    tmp[0] = arrayofchars[arrayofindex[loop][0]];	
+int step = 2;
 
-    for(int i=1; i<mpl; ++i) {
-    	tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
-        rotate -= rotate/length;
-    }
-    rain[loop]++;
-	
-    int pos = 0;
+int accu(int mpl){
+	int x, y=0;
+	for(x=1; x<=mpl; ++x)
+		y+=x;
+	return y;
+}
+
+void Generateur::gen_next(int loop, char *tmp) {
+	short int mpl = Generateur::min+loop;
+	rain[loop]++;
+	if(rain[loop] >= length) rain[loop]=1;
+	rotate = rain[loop];
+	tmp[0] = arrayofchars[arrayofindex[loop][0]];
+	for(int i=0; i<mpl; ++i) {
+		rotate += 2;
+		tmp[i]  = arrayofchars[arrayofindex[loop][(i+rotate)%mpl]];
+	}
+	int pos = 0;
 	while(pos < mpl && ++arrayofindex[loop][pos] >= length) {
-	    arrayofindex[loop][pos] = 0;
+	    arrayofindex[loop][pos]=0;
 	    pos++;
     }
     tmp[mpl] = '\0';
