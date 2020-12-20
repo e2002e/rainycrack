@@ -110,7 +110,6 @@ void Generateur::gen_next(int loop, char *tmp) {
 	tmp[0] = arrayofchars[arrayofindex[loop][0]];
 
 	for(int i=0; i<mpl; ++i) {
-		rotate+=i%2+1;
 		tmp[i] = arrayofchars[(arrayofindex[loop][(i+rotate)%mpl])%length];
 	}
 	int pos = 0;
