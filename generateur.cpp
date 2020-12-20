@@ -102,24 +102,16 @@ void Generateur::save() {
 	exit(0);
 }
 
-int step = 2;
-
-int accu(int mpl){
-	int x, y=0;
-	for(x=1; x<=mpl; ++x)
-		y+=x;
-	return y;
-}
-
 void Generateur::gen_next(int loop, char *tmp) {
 	short int mpl = Generateur::min+loop;
-	rain[loop]++;
-	if(rain[loop] >= length) rain[loop]=1;
+	if(++rain[loop] >= length)
+		rain[loop]=1;
 	rotate = rain[loop];
 	tmp[0] = arrayofchars[arrayofindex[loop][0]];
+
 	for(int i=0; i<mpl; ++i) {
-		rotate += 2;
-		tmp[i]  = arrayofchars[arrayofindex[loop][(i+rotate)%mpl]];
+		rotate+=i%2+1;
+		tmp[i] = arrayofchars[(arrayofindex[loop][(i+rotate)%mpl])%length];
 	}
 	int pos = 0;
 	while(pos < mpl && ++arrayofindex[loop][pos] >= length) {
