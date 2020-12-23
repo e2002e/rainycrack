@@ -50,6 +50,9 @@ void showhelp() {
 		" Arguments:\n"
 	  	"./rc [ min max --set | -set | -s \"set\" ] \n"
 	  	"     [ -r | -restore | --restore ]\n\n"
+
+		"USE FREQUENCY CHARACTER SET, trim from this one if needed:\n"
+		"aeorisn1tl2md0cp3hbuk45g9687yfwjvzxqASERBTMLNPOIDCHGKFJUW.!Y*@V-ZQX_$#,/+?;^ %%~=&`\\)][:<(æ>\"ü|{'öä}\n"
 	);
 }
 
