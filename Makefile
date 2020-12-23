@@ -5,6 +5,6 @@ rc: main.o generateur.o
 main.o: main.cpp
 	$(CXX) -c main.cpp -o main.o
 generateur.o: generateur.cpp generateur.h
-	$(CXX) -c generateur.cpp -o generateur.o
+	$(CXX) -c generateur.cpp -o generateur.o -g
 clean:
 	rm rc main.o generateur.o

@@ -15,27 +15,30 @@ extern uint_big powi(uint32_t b, uint32_t p);
 the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
 This this how we can work on all the lengths at the same time.*/
 void gen(Generateur *generateur) {
+	if(stop)
+		generateur->save();		
 	for(generateur->loop2=generateur->L; generateur->loop2 <= generateur->max-generateur->min; ++generateur->loop2) {
 		if(stop)
-			generateur->save();
-
+			generateur->save();		
 		uint_big subtotal = 0;
+		
 		if(generateur->loop2 > 0)
 			subtotal = powi(generateur->length, generateur->min+generateur->loop2-1);
-		generateur->total = powi(generateur->length, generateur->min+generateur->loop2) - subtotal;
+		generateur->total = (powi(generateur->length, generateur->min+generateur->loop2) - subtotal);
 
+		int step = 1;
 		for(generateur->a = generateur->A; generateur->a < generateur->total;
-				++generateur->a) {
+						++generateur->a) {
 			if(stop)
 				generateur->save();
-			
 			for(int loop = generateur->loop2; loop <= generateur->max-generateur->min; ++loop) {
 				if(stop)
 					generateur->save();
-				
 				char tmp[generateur->min+loop];
-				generateur->gen_next(loop, tmp);
-			    printf("%s\n", tmp);
+				generateur->gen_next(loop, tmp, step);
+				if(++step>generateur->length)
+					step = 1;
+				printf("%s\n", tmp);
 			}
 		}
 	}
@@ -82,14 +85,15 @@ int main(int argc, char *argv[]) {
 	    else {
 		    generateur->L = 0;
 		    generateur->A = 0;
-		    generateur->rotate = 0;
 		    int mmm = generateur->max-generateur->min;
 		    generateur->rain = new uint_big[mmm+1];
+		    generateur->strafe = new unsigned int[mmm+1];
 		    generateur->arrayofindex = new int *[mmm+1];
 		    for(int a=0; a<=mmm; ++a) {
-		    	generateur->rain[a] = 0;    
-		    	generateur->arrayofindex[a] = new int [generateur->max];
-		        for(int i=0; i<generateur->max; ++i)
+		    	generateur->rain[a] = 1;
+		    	generateur->strafe[a] = 1;
+				generateur->arrayofindex[a] = new int [generateur->max];
+				for(int i=0; i<generateur->max; ++i)
 		            generateur->arrayofindex[a][i] = 0;
 		    }        
 	    }
@@ -105,7 +109,6 @@ int main(int argc, char *argv[]) {
 		fseek(fd, 0, SEEK_SET);
 		fread(generateur->buff, filesize, 1, fd);
 		fclose(fd);
-		
 		generateur->restore();		
 	}
 	else {
