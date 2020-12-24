@@ -104,15 +104,13 @@ void Generateur::save() {
 
 void Generateur::gen_next(int loop, char *tmp, int step) {
 	short int mpl = Generateur::min+loop;
-	
 	uint_big rotate = rain[loop]++;
-	rotate += powi(powi(2, step), 2);
 	tmp[0] = arrayofchars[step-1];
 	for(int i=1; i<mpl; ++i) {
 		tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
-		rotate -= rotate / length;
+		rotate += powi(powi(2, step), mpl);
+		rotate -= rotate / 2;
 	}
-
 	int pos = 0;
 	while(pos < length && ++arrayofindex[loop][pos] >= length) {
 	    arrayofindex[loop][pos]=0;

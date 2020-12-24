@@ -15,30 +15,31 @@ extern uint_big powi(uint32_t b, uint32_t p);
 the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
 This this how we can work on all the lengths at the same time.*/
 void gen(Generateur *generateur) {
-	if(stop)
-		generateur->save();		
-	for(generateur->loop2=generateur->L; generateur->loop2 <= generateur->max-generateur->min; ++generateur->loop2) {
-		if(stop)
-			generateur->save();		
-		uint_big subtotal = 0;
-		
-		if(generateur->loop2 > 0)
-			subtotal = powi(generateur->length, generateur->min+generateur->loop2-1);
-		generateur->total = (powi(generateur->length, generateur->min+generateur->loop2) - subtotal);
-
-		int step = 1;
-		for(generateur->a = generateur->A; generateur->a < generateur->total;
-						++generateur->a) {
+	//for(int x=1; x<=generateur->length; ++x) 
+	{
+		for(generateur->loop2=generateur->L; generateur->loop2 <= generateur->max-generateur->min; ++generateur->loop2) {
 			if(stop)
-				generateur->save();
-			for(int loop = generateur->loop2; loop <= generateur->max-generateur->min; ++loop) {
+				generateur->save();		
+			uint_big subtotal = 0;
+			
+			if(generateur->loop2 > 0)
+				subtotal = powi(generateur->length, generateur->min+generateur->loop2-1);
+			generateur->total = (powi(generateur->length, generateur->min+generateur->loop2) - subtotal);
+
+			int step = 1;
+			for(generateur->a = generateur->A; generateur->a < generateur->total;
+							++generateur->a) {
 				if(stop)
 					generateur->save();
-				char tmp[generateur->min+loop];
-				generateur->gen_next(loop, tmp, step);
-				if(++step>generateur->length)
-					step = 1;
-				printf("%s\n", tmp);
+				for(int loop = generateur->loop2; loop <= generateur->max-generateur->min; ++loop) {
+					if(stop)
+						generateur->save();
+						char tmp[generateur->min+loop];
+					generateur->gen_next(loop, tmp, step);
+					if(++step>generateur->length)
+						step = 1;
+					printf("%s\n", tmp);
+				}
 			}
 		}
 	}
