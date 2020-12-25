@@ -71,15 +71,12 @@ void Generateur::restore() {
 	strcpy(Generateur::arrayofchars, tmparrayofchars);
 	
 	Generateur::arrayofindex = new int *[mmm+1];
-	Generateur::rain = new uint_big [mmm+1];
 	
 	Generateur::L = (int) strtol(strtok(NULL, ":"), NULL, 10);
 	char *tmpstr = strtok(NULL, ":");
 	Generateur::A = str2big(tmpstr);
 	
 	for(int a=0; a<=mmm; ++a) {
-		char *tmpstr2 = strtok(NULL, ":");
-		Generateur::rain[a] = str2big(tmpstr2);
 	    Generateur::arrayofindex[a] = new int[Generateur::max];
 	 	for(int b=0; b<Generateur::min+a; ++b) {
 	 	    	Generateur::arrayofindex[a][b] = (int) strtol(strtok(NULL, ":"), NULL, 10);
@@ -95,26 +92,22 @@ void Generateur::save() {
 	fprintf(fd, "%d:", Generateur::loop2);
 	fprintf(fd, "%s:", big2str(Generateur::a));
 	for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
-	    fprintf(fd, "%s:", big2str(Generateur::rain[a]));
 	    for(int b=0; b < Generateur::min+a; ++b)
 			fprintf(fd, "%d:", Generateur::arrayofindex[a][b]); 
 	}
 	exit(0);
 }
 
-void Generateur::gen_next(int loop, char *tmp, int step) {
+void Generateur::gen_next(int loop, char *tmp) {
 	short int mpl = Generateur::min+loop;
-	uint_big rotate = rain[loop]++;
-	tmp[0] = arrayofchars[step-1];
-	for(int i=1; i<mpl; ++i) {
-		tmp[i] = arrayofchars[(arrayofindex[loop][i]+rotate)%length];
-		rotate += powi(powi(2, step), mpl);
-		rotate -= rotate / 2;
+	short unsigned int i;
+	for(i=0; i<mpl; ++i) {
+		tmp[i] = arrayofchars[arrayofindex[loop][i]];
 	}
-	int pos = 0;
-	while(pos < length && ++arrayofindex[loop][pos] >= length) {
-	    arrayofindex[loop][pos]=0;
-	    pos++;
-    }
-    tmp[mpl] = '\0';
+	for(i=0; i<mpl; ++i)
+		if(++arrayofindex[loop][i] >= length) {
+			arrayofindex[loop][i] = 0;
+			break;
+		}
+	tmp[mpl] = '\0';
 }

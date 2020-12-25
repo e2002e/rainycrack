@@ -35,9 +35,7 @@ void gen(Generateur *generateur) {
 					if(stop)
 						generateur->save();
 						char tmp[generateur->min+loop];
-					generateur->gen_next(loop, tmp, step);
-					if(++step>generateur->length)
-						step = 1;
+					generateur->gen_next(loop, tmp);
 					printf("%s\n", tmp);
 				}
 			}
@@ -90,12 +88,8 @@ int main(int argc, char *argv[]) {
 		    generateur->L = 0;
 		    generateur->A = 0;
 		    int mmm = generateur->max-generateur->min;
-		    generateur->rain = new uint_big[mmm+1];
-		    generateur->strafe = new unsigned int[mmm+1];
 		    generateur->arrayofindex = new int *[mmm+1];
 		    for(int a=0; a<=mmm; ++a) {
-		    	generateur->rain[a] = 1;
-		    	generateur->strafe[a] = 1;
 				generateur->arrayofindex[a] = new int [generateur->max];
 				for(int i=0; i<generateur->max; ++i)
 		            generateur->arrayofindex[a][i] = 0;

@@ -16,7 +16,7 @@ class Generateur {
 	int loop2;
 	int L;
 	
-	void gen_next(int, char*, int);
+	void gen_next(int, char*);
 	void save();
 	void restore();
 };
