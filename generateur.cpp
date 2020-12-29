@@ -62,20 +62,22 @@ static uint_big str2big(char *str) {
 void Generateur::restore() {
 	Generateur::min = (int)strtol(strtok(Generateur::buff, ":"), NULL, 10);
 	Generateur::max = (int)strtol(strtok(NULL, ":"), NULL, 10);
- 	
+ 
  	int mmm = Generateur::max-Generateur::min;
 	char *tmparrayofchars = strtok(NULL, ":");
-	
+
 	Generateur::length = strlen(tmparrayofchars);
 	Generateur::arrayofchars = new char[Generateur::length];
 	strcpy(Generateur::arrayofchars, tmparrayofchars);
-	
-	Generateur::arrayofindex = new int *[mmm+1];
-	
+
+	Generateur::progressive = (int) strtol(strtok(NULL, ":"), NULL, 10);
 	Generateur::L = (int) strtol(strtok(NULL, ":"), NULL, 10);
+	Generateur::X = (int) strtol(strtok(NULL, ":"), NULL, 10);
+	
 	char *tmpstr = strtok(NULL, ":");
 	Generateur::A = str2big(tmpstr);
 	
+	Generateur::arrayofindex = new int *[mmm+1];
 	for(int a=0; a<=mmm; ++a) {
 	    Generateur::arrayofindex[a] = new int[Generateur::max];
 	 	for(int b=0; b<Generateur::min+a; ++b) {
@@ -89,7 +91,9 @@ void Generateur::save() {
 	fprintf(fd, "%d:", Generateur::min);
 	fprintf(fd, "%d:", Generateur::max);
 	fprintf(fd, "%s:", Generateur::arrayofchars);
+	fprintf(fd, "%d:", Generateur::progressive);
 	fprintf(fd, "%d:", Generateur::loop2);
+	fprintf(fd, "%d:", Generateur::x);
 	fprintf(fd, "%s:", big2str(Generateur::a));
 	for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
 	    for(int b=0; b < Generateur::min+a; ++b)
@@ -98,16 +102,18 @@ void Generateur::save() {
 	exit(0);
 }
 
-void Generateur::gen_next(int loop, char *tmp) {
-	short int mpl = Generateur::min+loop;
-	short unsigned int i;
-	for(i=0; i<mpl; ++i) {
-		tmp[i] = arrayofchars[arrayofindex[loop][i]];
-	}
+bool Generateur::gen_next(int loop, char *tmp, int step) {
+	short unsigned int mpl = Generateur::min+loop, i;
+	bool over = false;
 	for(i=0; i<mpl; ++i)
-		if(++arrayofindex[loop][i] >= length) {
-			arrayofindex[loop][i] = 0;
-			break;
-		}
+		tmp[i] = arrayofchars[arrayofindex[loop][i]];
+
+	for(i=0; i<mpl; ++i)
+	if(++arrayofindex[loop][i] >= step) {
+		arrayofindex[loop][i] = 0;
+		over = 1;
+		break;
+	}
 	tmp[mpl] = '\0';
+	return over;
 }

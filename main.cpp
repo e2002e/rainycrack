@@ -15,42 +15,69 @@ extern uint_big powi(uint32_t b, uint32_t p);
 the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
 This this how we can work on all the lengths at the same time.*/
 void gen(Generateur *generateur) {
-	//for(int x=1; x<=generateur->length; ++x) 
+	int mmm = generateur->max-generateur->min;
+	//we only need this loop with progressive mode, hence the boolean multiplier
+	for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x)
 	{
-		for(generateur->loop2=generateur->L; generateur->loop2 <= generateur->max-generateur->min; ++generateur->loop2) {
+		if(stop)
+			generateur->save();
+		//the outer loop on lengths, since we need the current min value to set the iteration count
+		for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2)
+		{
 			if(stop)
-				generateur->save();		
-			uint_big subtotal = 0;
+				generateur->save();
+			int mpl = generateur->min+generateur->loop2;
+			uint_big total;
+			if(generateur->progressive)
+				total = powi(generateur->x, mpl);
+			else
+				total = powi(generateur->length, mpl);
 			
+			uint_big subtotal = 0;
 			if(generateur->loop2 > 0)
-				subtotal = powi(generateur->length, generateur->min+generateur->loop2-1);
-			generateur->total = (powi(generateur->length, generateur->min+generateur->loop2) - subtotal);
+				if(generateur->progressive)
+					subtotal = powi(generateur->x, mpl-1);
+				else
+					subtotal = powi(generateur->length, mpl-1);
 
-			int step = 1;
-			for(generateur->a = generateur->A; generateur->a < generateur->total;
-							++generateur->a) {
+			char tmp[generateur->max];
+			for(generateur->a = generateur->A; generateur->a < total - subtotal; ++generateur->a)
+			{
 				if(stop)
 					generateur->save();
-				for(int loop = generateur->loop2; loop <= generateur->max-generateur->min; ++loop) {
+				//the loop on the lengths
+				for(int loop = generateur->loop2; loop <= mmm; ++loop)
+				{
 					if(stop)
 						generateur->save();
-						char tmp[generateur->min+loop];
-					generateur->gen_next(loop, tmp);
-					printf("%s\n", tmp);
+					if(generateur->progressive == 1) {
+						//print only when state is not already done, see generateur.cpp
+						if(generateur->gen_next(loop, tmp, generateur->x))
+							printf("%s\n", tmp);
+					}
+					else {
+						if(1)
+						{
+							generateur->gen_next(loop, tmp, generateur->length);
+							printf("%s\n", tmp);
+						}
+					}
 				}
 			}
 		}
 	}
 }
+
 void showhelp() {
 	printf(\
 		"RainyCrack:\n\n"
-		
+		" Password generator with deep mangling.\n"
 		" Arguments:\n"
 	  	"./rc [ min max --set | -set | -s \"set\" ] \n"
-	  	"     [ -r | -restore | --restore ]\n\n"
-
-		"USE FREQUENCY CHARACTER SET, trim from this one if needed:\n"
+	  	"     [ -r | -restore | --restore ]\n"
+		"	  [ -p | -progressive | --progressive ]\n\n"
+		
+		"When using the -p option, mind the order of the character set."
 		"aeorisn1tl2md0cp3hbuk45g9687yfwjvzxqASERBTMLNPOIDCHGKFJUW.!Y*@V-ZQX_$#,/+?;^ %%~=&`\\)][:<(æ>\"ü|{'öä}\n"
 	);
 }
@@ -65,8 +92,10 @@ int main(int argc, char *argv[]) {
 	
 	signal(SIGKILL,signalHandler);
 	signal(SIGINT, signalHandler);
-	
+
 	Generateur *generateur = new Generateur;	
+	generateur->progressive = false;	
+	
 	if(argc > 2) {
 	    if(!(generateur->min = atoi(argv[1]))) { fprintf(stderr, "Invalid minimum length: %d ...\n", generateur->min); exit(-1); }
 		if(!(generateur->max = atoi(argv[2]))) { fprintf(stderr, "Invalid maximum length: %d ...\n", generateur->max); exit(-1); }
@@ -82,11 +111,15 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "Use restore option as only parameter.\n");
 				exit(-1);
 			}
+			if(strcmp(argv[arg], "-progressive") == 0 || strcmp(argv[arg], "-progressive") == 0 || strcmp(argv[arg], "-p") == 0) {
+				generateur->progressive = 1;
+			}
 		}
 		if(!check) { fprintf(stderr, "Needs input characters: --set option.\n"); exit(-1); }
 	    else {
 		    generateur->L = 0;
 		    generateur->A = 0;
+		    generateur->X = 0;
 		    int mmm = generateur->max-generateur->min;
 		    generateur->arrayofindex = new int *[mmm+1];
 		    for(int a=0; a<=mmm; ++a) {
