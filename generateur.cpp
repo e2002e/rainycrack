@@ -104,15 +104,16 @@ void Generateur::save() {
 
 bool Generateur::gen_next(int loop, char *tmp, int step) {
 	short unsigned int mpl = Generateur::min+loop, i;
-	bool over = false;
+	bool over = 0;
 	for(i=0; i<mpl; ++i)
 		tmp[i] = arrayofchars[arrayofindex[loop][i]];
 
-	for(i=0; i<mpl; ++i)
-	if(++arrayofindex[loop][i] >= step) {
-		arrayofindex[loop][i] = 0;
-		over = 1;
-		break;
+	for(i=0; i<mpl; ++i) {
+		if(++arrayofindex[loop][i] >= step) {
+			arrayofindex[loop][i] = 0;
+			over = 1;
+			break;
+		}
 	}
 	tmp[mpl] = '\0';
 	return over;

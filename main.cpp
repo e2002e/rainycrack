@@ -11,28 +11,27 @@ bool stop = false;
 
 extern uint_big powi(uint32_t b, uint32_t p);
 
-/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
-the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
-This this how we can work on all the lengths at the same time.*/
 void gen(Generateur *generateur) {
 	int mmm = generateur->max-generateur->min;
 	//we only need this loop with progressive mode, hence the boolean multiplier
-	for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x)
-	{
+	for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x) {
 		if(stop)
 			generateur->save();
-		//the outer loop on lengths, since we need the current min value to set the iteration count
-		for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2)
-		{
+		/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
+		the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
+		This this how we can work on all the lengths at the same time.*/
+		for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2) {
 			if(stop)
 				generateur->save();
+
 			int mpl = generateur->min+generateur->loop2;
+
 			uint_big total;
 			if(generateur->progressive)
 				total = powi(generateur->x, mpl);
 			else
 				total = powi(generateur->length, mpl);
-			
+
 			uint_big subtotal = 0;
 			if(generateur->loop2 > 0)
 				if(generateur->progressive)
@@ -41,26 +40,25 @@ void gen(Generateur *generateur) {
 					subtotal = powi(generateur->length, mpl-1);
 
 			char tmp[generateur->max];
-			for(generateur->a = generateur->A; generateur->a < total - subtotal; ++generateur->a)
-			{
+
+			for(generateur->a = generateur->A; generateur->a < total - subtotal; ++generateur->a) {
 				if(stop)
 					generateur->save();
-				//the loop on the lengths
-				for(int loop = generateur->loop2; loop <= mmm; ++loop)
-				{
+				//the inner loop on the lengths
+				for(int loop = generateur->loop2; loop <= mmm; ++loop) {
 					if(stop)
 						generateur->save();
 					if(generateur->progressive == 1) {
-						//print only when state is not already done, see generateur.cpp
+						/*TODO: use generateur->a%(generateur->length-generateur->x+1)+generateur->x as third argument
+						This will clamp the set to x to length, but the correct settings in generateur.cpp are not found.
+						This is mandatory to find it so that the impact of the order of the characters in the set is effective 
+						without taking too much time to use a 'decent' amount of characters.*/
 						if(generateur->gen_next(loop, tmp, generateur->x))
 							printf("%s\n", tmp);
 					}
 					else {
-						if(1)
-						{
-							generateur->gen_next(loop, tmp, generateur->length);
-							printf("%s\n", tmp);
-						}
+						generateur->gen_next(loop, tmp, generateur->length);
+						printf("%s\n", tmp);
 					}
 				}
 			}
@@ -77,7 +75,7 @@ void showhelp() {
 	  	"     [ -r | -restore | --restore ]\n"
 		"	  [ -p | -progressive | --progressive ]\n\n"
 		
-		"When using the -p option, mind the order of the character set."
+		"When using the -p option, mind the order of the character set.\n"
 		"aeorisn1tl2md0cp3hbuk45g9687yfwjvzxqASERBTMLNPOIDCHGKFJUW.!Y*@V-ZQX_$#,/+?;^ %%~=&`\\)][:<(æ>\"ü|{'öä}\n"
 	);
 }
@@ -135,7 +133,7 @@ int main(int argc, char *argv[]) {
 		do {
 			++filesize;
 			getc(fd);
-		} while(!feof(fd));//unroll the whole file to get the character's count.
+		} while(!feof(fd));//unroll the whole file to get the character's count. Yes C/C++ is ...
 		generateur->buff = new char[filesize];
 		fseek(fd, 0, SEEK_SET);
 		fread(generateur->buff, filesize, 1, fd);
