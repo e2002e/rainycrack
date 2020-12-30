@@ -104,7 +104,7 @@ void Generateur::save() {
 
 bool Generateur::gen_next(int loop, char *tmp, int step) {
 	short unsigned int mpl = Generateur::min+loop, i;
-	bool over = 0;
+	int over = 0;
 	for(i=0; i<mpl; ++i)
 		tmp[i] = arrayofchars[arrayofindex[loop][i]];
 
@@ -114,7 +114,7 @@ bool Generateur::gen_next(int loop, char *tmp, int step) {
 			over = 1;
 			break;
 		}
-	}
+	}		
 	tmp[mpl] = '\0';
 	return over;
 }

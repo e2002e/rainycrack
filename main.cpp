@@ -50,8 +50,8 @@ void gen(Generateur *generateur) {
 						generateur->save();
 					if(generateur->progressive == 1) {
 						/*TODO: use generateur->a%(generateur->length-generateur->x+1)+generateur->x as third argument
-						This will clamp the set to x to length, but the correct settings in generateur.cpp are not found.
-						This is mandatory to find it so that the impact of the order of the characters in the set is effective 
+						This will clamp the set from x to length, but the correct settings in generateur.cpp are not found.
+						This is mandatory so that the impact of the order of the characters in the set is effective 
 						without taking too much time to use a 'decent' amount of characters.*/
 						if(generateur->gen_next(loop, tmp, generateur->x))
 							printf("%s\n", tmp);
