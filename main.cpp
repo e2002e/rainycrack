@@ -71,12 +71,12 @@ void showhelp() {
 		"RainyCrack:\n\n"
 		" Password generator with deep mangling.\n"
 		" Arguments:\n"
-	  	"./rc [ min max --set | -set | -s \"set\" ] \n"
+	  	"  ./rc [ min max --set | -set | -s \"set\" ] \n"
 	  	"     [ -r | -restore | --restore ]\n"
-		"	  [ -p | -progressive | --progressive ]\n\n"
+		"     [ -p | -progressive | --progressive ]\n\n"
 		
-		"When using the -p option, mind the order of the character set.\n"
-		"aeorisn1tl2md0cp3hbuk45g9687yfwjvzxqASERBTMLNPOIDCHGKFJUW.!Y*@V-ZQX_$#,/+?;^ %%~=&`\\)][:<(æ>\"ü|{'öä}\n"
+		" When using the -p option, mind the order of the character set. Hint:\n"
+		" aeorisn1tl2md0cp3hbuk45g9687yfwjvzxqASERBTMLNPOIDCHGKFJUW.!Y*@V-ZQX\n _$#,/+?;^ %%~=&`\\)][:<(æ>\"ü|{'öä}\n\n"
 	);
 }
 
