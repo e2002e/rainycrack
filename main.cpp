@@ -16,11 +16,11 @@ void gen(Generateur *generateur) {
 	/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
 	the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
 	This this how we can work on all the lengths at the same time.*/
-	for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2) {
+	for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x) 
+	{
 		if(stop)
 			generateur->save();
-		for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x) 
-		{
+		for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2) {
 			if(stop)
 				generateur->save();
 
@@ -35,7 +35,7 @@ void gen(Generateur *generateur) {
 			uint_big subtotal = 0;
 			if(generateur->loop2 > 0)
 				if(generateur->progressive)
-					subtotal = powi(generateur->x-1, mpl-1);
+					subtotal = powi(generateur->x, mpl-1);
 				else
 					subtotal = powi(generateur->length, mpl-1);
 
@@ -113,9 +113,10 @@ int main(int argc, char *argv[]) {
 	    else {
 		    generateur->L = 0;
 		    generateur->A = 0;
-		    generateur->X = 1;//one or zero, doesn't matter
+		    generateur->X = 0;
 		    int mmm = generateur->max-generateur->min;
 		    generateur->arrayofindex = new int *[mmm+1];
+		    generateur->counter = 0;
 		    for(int a=0; a<=mmm; ++a) {
 				generateur->arrayofindex[a] = new int [generateur->max];
 				for(int i=0; i<generateur->max; ++i)

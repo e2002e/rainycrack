@@ -107,9 +107,9 @@ bool Generateur::gen_next(int loop, char *word, int step) {
 	int over = 0;
 
 	//TODO:find a way to replace a%step with a%length
-	word[0] = arrayofchars[a%step];
+	word[0] = arrayofchars[arrayofindex[loop][0]];
 	for(i=1; i<mpl; i++)
-		word[i] = arrayofchars[(arrayofindex[loop][i] + length/(a%step+1)-1)%length];	
+		word[i] = arrayofchars[(arrayofindex[loop][i]+length/(a%step+1)-1) % length];	
 
 	for(i=0; i<mpl; i++) {
 		if(++arrayofindex[loop][i] >= step) {
