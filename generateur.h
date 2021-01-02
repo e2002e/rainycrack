@@ -4,8 +4,8 @@ class Generateur {
 	public:
 	int **arrayofindex;	//state
 	char *arrayofchars;	//the character set
-	uint_big a, A;		//counters for each roll
-	uint_big counter;
+	uint_big a, A;		//counter
+	uint_big mod;
 	int X, x;			//progressive mode related
 	bool progressive;
 	char *buff;			//holds the data when restoring

@@ -39,6 +39,8 @@ void gen(Generateur *generateur) {
 				else
 					subtotal = powi(generateur->length, mpl-1);
 
+			generateur->mod = powi(generateur->x,mpl)/2+powi(generateur->x,mpl-1);
+
 			char tmp[generateur->max];
 
 			for(generateur->a = generateur->A; generateur->a < total - subtotal; ++generateur->a) {
@@ -116,7 +118,6 @@ int main(int argc, char *argv[]) {
 		    generateur->X = 0;
 		    int mmm = generateur->max-generateur->min;
 		    generateur->arrayofindex = new int *[mmm+1];
-		    generateur->counter = 0;
 		    for(int a=0; a<=mmm; ++a) {
 				generateur->arrayofindex[a] = new int [generateur->max];
 				for(int i=0; i<generateur->max; ++i)
