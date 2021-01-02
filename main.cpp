@@ -13,14 +13,14 @@ extern uint_big powi(uint32_t b, uint32_t p);
 
 void gen(Generateur *generateur) {
 	int mmm = generateur->max-generateur->min;
-	//we only need this loop with progressive mode, hence the boolean multiplier
-	for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x) {
+	/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
+	the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
+	This this how we can work on all the lengths at the same time.*/
+	for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2) {
 		if(stop)
 			generateur->save();
-		/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
-		the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
-		This this how we can work on all the lengths at the same time.*/
-		for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2) {
+		for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x) 
+		{
 			if(stop)
 				generateur->save();
 
@@ -35,7 +35,7 @@ void gen(Generateur *generateur) {
 			uint_big subtotal = 0;
 			if(generateur->loop2 > 0)
 				if(generateur->progressive)
-					subtotal = powi(generateur->x, mpl-1);
+					subtotal = powi(generateur->x-1, mpl-1);
 				else
 					subtotal = powi(generateur->length, mpl-1);
 
@@ -49,10 +49,6 @@ void gen(Generateur *generateur) {
 					if(stop)
 						generateur->save();
 					if(generateur->progressive == 1) {
-						/*TODO: use generateur->a%(generateur->length-generateur->x+1)+generateur->x as third argument
-						This will clamp the set from x to length, but the correct settings in generateur.cpp are not found.
-						This is mandatory so that the impact of the order of the characters in the set is effective 
-						without taking too much time to use a 'decent' amount of characters.*/
 						if(generateur->gen_next(loop, tmp, generateur->x))
 							printf("%s\n", tmp);
 					}

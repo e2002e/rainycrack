@@ -102,19 +102,22 @@ void Generateur::save() {
 	exit(0);
 }
 
-bool Generateur::gen_next(int loop, char *tmp, int step) {
+bool Generateur::gen_next(int loop, char *word, int step) {
 	short unsigned int mpl = Generateur::min+loop, i;
 	int over = 0;
-	for(i=0; i<mpl; ++i)
-		tmp[i] = arrayofchars[arrayofindex[loop][i]];
+	char tmp[mpl+1];
 
-	for(i=0; i<mpl; ++i) {
+	word[0] = arrayofchars[a%step];
+	for(i=1; i<mpl; i++)
+		word[i] = arrayofchars[(arrayofindex[loop][i] + length/(a%step+1)-1)%length];	
+
+	for(i=0; i<mpl; i++) {
 		if(++arrayofindex[loop][i] >= step) {
 			arrayofindex[loop][i] = 0;
 			over = 1;
 			break;
 		}
-	}		
-	tmp[mpl] = '\0';
+	}
+	word[mpl] = '\0';
 	return over;
 }
