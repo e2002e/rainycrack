@@ -106,7 +106,7 @@ bool Generateur::gen_next(int loop, char *word, int step) {
 	short unsigned int mpl = Generateur::min+loop, i;
 	int over = 0;
 
-	word[0] = arrayofchars[(arrayofindex[loop][0]+mod)%length];
+	word[0] = arrayofchars[(arrayofindex[loop][0]+mod+mpl)%length];
 	for(i=1; i<mpl; i++)
 		word[i] = arrayofchars[(arrayofindex[loop][i]+length/(a%step+1)-1) % length];	
 
