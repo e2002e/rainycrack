@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 	    else {
 		    generateur->L = 0;
 		    generateur->A = 0;
-		    generateur->X = 0;
+		    generateur->X = 1;//one or zero, doesn't matter
 		    int mmm = generateur->max-generateur->min;
 		    generateur->arrayofindex = new int *[mmm+1];
 		    for(int a=0; a<=mmm; ++a) {

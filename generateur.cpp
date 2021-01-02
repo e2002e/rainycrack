@@ -105,8 +105,8 @@ void Generateur::save() {
 bool Generateur::gen_next(int loop, char *word, int step) {
 	short unsigned int mpl = Generateur::min+loop, i;
 	int over = 0;
-	char tmp[mpl+1];
 
+	//TODO:find a way to replace a%step with a%length
 	word[0] = arrayofchars[a%step];
 	for(i=1; i<mpl; i++)
 		word[i] = arrayofchars[(arrayofindex[loop][i] + length/(a%step+1)-1)%length];	
