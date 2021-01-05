@@ -39,8 +39,6 @@ void gen(Generateur *generateur) {
 				else
 					subtotal = powi(generateur->length, mpl-1);
 
-			generateur->mod = powi(generateur->x,mpl)/2+powi(generateur->x,mpl-1);
-
 			char tmp[generateur->max];
 
 			for(generateur->a = generateur->A; generateur->a < total - subtotal; ++generateur->a) {
