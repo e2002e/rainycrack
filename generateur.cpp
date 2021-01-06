@@ -102,7 +102,7 @@ void Generateur::save() {
 	exit(0);
 }
 
-bool Generateur::gen_next(int loop, char *word, int step) {
+bool Generateur::gen_next(int loop, unsigned char *word, int step) {
 	short unsigned int mpl = Generateur::min+loop, i;
 	int over = 0;
 

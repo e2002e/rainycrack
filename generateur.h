@@ -5,14 +5,19 @@ class Generateur {
 	int **arrayofindex;	//state
 	char *arrayofchars;	//the character set
 	uint_big a, A;		//counter
-	uint_big mod;
 	int X, x;			//progressive mode related
 	bool progressive;
 	char *buff;			//holds the data when restoring
 	int min, max;
+	int m, M;
 	int length;			//length of the character set
-	int loop2, L;		//the loop on the words lengths, see main.cpp
-	bool gen_next(int, char*, int);
+	int loop2, L;		//managing mutiple lengths
+	bool gen_next(int, unsigned char*, int);
 	void save();
 	void restore();
+	//for hash cracking
+	bool crack;
+	int type;
+	int H;
+	uint32_t **md5;
 };

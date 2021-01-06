@@ -4,7 +4,9 @@
 #include <cstring>
 #include <cmath>
 #include <signal.h>
+#include <omp.h>
 #include "generateur.h"
+#include "md5.h"
 
 bool check = 0;
 bool stop = false;
@@ -18,12 +20,7 @@ void gen(Generateur *generateur) {
 	This this how we can work on all the lengths at the same time.*/
 	for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x) 
 	{
-		if(stop)
-			generateur->save();
 		for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2) {
-			if(stop)
-				generateur->save();
-
 			int mpl = generateur->min+generateur->loop2;
 
 			uint_big total;
@@ -39,13 +36,12 @@ void gen(Generateur *generateur) {
 				else
 					subtotal = powi(generateur->length, mpl-1);
 
-			char tmp[generateur->max];
-
 			for(generateur->a = generateur->A; generateur->a < total - subtotal; ++generateur->a) {
 				if(stop)
 					generateur->save();
 				//the inner loop on the lengths
 				for(int loop = generateur->loop2; loop <= mmm; ++loop) {
+					unsigned char tmp[generateur->min+loop];
 					if(stop)
 						generateur->save();
 					if(generateur->progressive == 1) {
@@ -54,7 +50,17 @@ void gen(Generateur *generateur) {
 					}
 					else {
 						generateur->gen_next(loop, tmp, generateur->length);
-						printf("%s\n", tmp);
+						if(generateur->crack) {
+							for(int h=0; h<generateur->H; ++h) {
+								uint32_t hash[4];
+								md5_hash(tmp, generateur->min+loop, hash);
+								if(memcmp(hash, generateur->md5[h], sizeof(hash)) == 0) {
+									printf("%s\n", tmp);
+								}
+							}
+						}
+						else
+							printf("%s\n", tmp);
 					}
 				}
 			}
@@ -89,6 +95,7 @@ int main(int argc, char *argv[]) {
 
 	Generateur *generateur = new Generateur;	
 	generateur->progressive = false;	
+	generateur->crack = false;
 	
 	if(argc > 2) {
 	    if(!(generateur->min = atoi(argv[1]))) { fprintf(stderr, "Invalid minimum length: %d ...\n", generateur->min); exit(-1); }
@@ -105,8 +112,53 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "Use restore option as only parameter.\n");
 				exit(-1);
 			}
-			if(strcmp(argv[arg], "-progressive") == 0 || strcmp(argv[arg], "-progressive") == 0 || strcmp(argv[arg], "-p") == 0) {
+			if(strcmp(argv[arg], "--progressive") == 0 || strcmp(argv[arg], "-progressive") == 0 || strcmp(argv[arg], "-p") == 0) {
 				generateur->progressive = 1;
+			}
+			if(strcmp(argv[arg], "--crack") == 0 || strcmp(argv[arg], "-crack") == 0 || strcmp(argv[arg], "-c") == 0) {
+				generateur->crack = true;
+				if(strcmp(argv[arg+1], "md5") == 0)
+					generateur->type = 0;
+				else {
+					fprintf(stderr, "Hash type unknown.\n");
+					exit(-1);
+				}
+				FILE *fd = fopen(argv[arg+2], "r");
+			 	if(fd == NULL)
+			 	{
+					fprintf(stderr, "Incorrect file path.\n");
+					exit(-1);
+				} 
+				int filesize = 0;
+				int h;
+				do {
+					++filesize;
+					int c = getc(fd);
+					if(c == '\n') generateur->H++;
+				} while(!feof(fd));
+				fseek(fd, 0, SEEK_SET);
+
+				unsigned char **tmp = new unsigned char *[generateur->H];
+				generateur->md5 = new uint32_t *[generateur->H];
+				for(int i=0; i<generateur->H; ++i) {
+					tmp[i] = new unsigned char[33];
+					fread(tmp[i], 33, 1, fd);
+					generateur->md5[i] = new uint32_t[4];
+					for(int j=0; j < 4; j++) {
+						char tmp2[8], tmp3[8];
+						strncpy(tmp2, (char*)&tmp[i][j*8], 8);
+						for(int k=0; k<8; ++k) {
+							tmp3[k] = tmp2[7-k];
+						}
+						for(int l=0; l<8; l+=2) {
+							char c = tmp3[l];
+							tmp3[l] = tmp3[l+1];
+							tmp3[l+1] = c;
+						}
+						generateur->md5[i][j] = strtol((char*)tmp3, NULL, 16);
+					}
+				}
+				fclose(fd);
 			}
 		}
 		if(!check) { fprintf(stderr, "Needs input characters: --set option.\n"); exit(-1); }
@@ -125,6 +177,11 @@ int main(int argc, char *argv[]) {
 	}
 	else if(argc == 2 && (strcmp(argv[1], "-r") == 0 || strcmp(argv[1], "--restore") == 0 || strcmp(argv[1], "-restore") == 0)) {
 		FILE *fd = fopen("restore", "r");
+		if(fd == NULL)
+		{
+			fprintf(stderr, "Either you removed the restore file, or you did not interupt a session.\n");
+			exit(-1);
+		}
 		int filesize = 0;
 		do {
 			++filesize;
