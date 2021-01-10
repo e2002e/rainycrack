@@ -1,9 +1,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cmath>
 #include <stdint.h>
 #include "generateur.h"
+#include "cracker.h"
+
+extern Cracker *cracker;
+extern int mt;
 
 //this function is from john/subsets.c
 uint_big powi(uint32_t b, uint32_t p)
@@ -20,7 +23,7 @@ uint_big powi(uint32_t b, uint32_t p)
 	return res;
 }
 
-static char *big2str(uint_big orig) {
+char *big2str(uint_big orig) {
 	uint_big b = orig, total = 0;
 	int c = 0;
 	int x;
@@ -48,7 +51,7 @@ static char *big2str(uint_big orig) {
 	return str;
 }
 
-static uint_big str2big(char *str) {
+uint_big str2big(char *str) {
 	int x;
 	uint_big num = 0;
 	int c = 0;
@@ -59,31 +62,78 @@ static uint_big str2big(char *str) {
 	return num;
 }
 
-void Generateur::restore() {
-	Generateur::min = (int)strtol(strtok(Generateur::buff, ":"), NULL, 10);
-	Generateur::max = (int)strtol(strtok(NULL, ":"), NULL, 10);
+bool Generateur::restore() {
+	FILE *fd = fopen("restore", "r");
+	if(fd == NULL) {
+		fprintf(stderr, "Either you removed the restore file, or you did not interupt a single session.\n");
+		return 1;
+	}
+	int filesize = 0;
+	do {
+		++filesize;
+		getc(fd);
+	} while(!feof(fd));//unroll the whole file to get the character's count. Yes C/C++ is ...
+	char buff[filesize];
+	fseek(fd, 0, SEEK_SET);
+	fread(buff, filesize, 1, fd);
+	fclose(fd);
+
+	Generateur::min = (int)strtoul(strtok(buff, ":"), NULL, 10);
+	Generateur::max = (int)strtoul(strtok(NULL, ":"), NULL, 10);
  
  	int mmm = Generateur::max-Generateur::min;
-	char *tmparrayofchars = strtok(NULL, ":");
+	char *tmparrayofchars = strtok(NULL, ":");	
 
 	Generateur::length = strlen(tmparrayofchars);
 	Generateur::arrayofchars = new char[Generateur::length];
 	strcpy(Generateur::arrayofchars, tmparrayofchars);
 
-	Generateur::progressive = (int) strtol(strtok(NULL, ":"), NULL, 10);
-	Generateur::L = (int) strtol(strtok(NULL, ":"), NULL, 10);
-	Generateur::X = (int) strtol(strtok(NULL, ":"), NULL, 10);
-	
-	char *tmpstr = strtok(NULL, ":");
-	Generateur::A = str2big(tmpstr);
-	
-	Generateur::arrayofindex = new int *[mmm+1];
-	for(int a=0; a<=mmm; ++a) {
-	    Generateur::arrayofindex[a] = new int[Generateur::max];
-	 	for(int b=0; b<Generateur::min+a; ++b) {
-	 	    	Generateur::arrayofindex[a][b] = (int) strtol(strtok(NULL, ":"), NULL, 10);
+	char *tmpstr2 = strtok(NULL, ":");
+	Generateur::Counter = str2big(tmpstr2);
+
+	arrayofindex = new int **[mt];
+	L = new int [mt];
+	A = new uint_big [mt];
+	for(int t=0; t<mt; t++) {
+		//starting value for the loops
+		Generateur::L[t] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
+		char *tmpstr = strtok(NULL, ":");
+		Generateur::A[t] = str2big(tmpstr);
+		Generateur::arrayofindex[t] = new int *[mmm+1];	
+		for(int a=0; a<=mmm; ++a) {
+			Generateur::arrayofindex[t][a] = new int[Generateur::min+a];
+		 	for(int b=0; b<Generateur::min+a; ++b)
+	 	    	Generateur::arrayofindex[t][a][b] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
 		}
 	}
+	cracker->crack = (bool) strtoul(strtok(NULL, ":"), NULL, 10);
+	if(cracker->crack) {
+		char *tmpfilename = strtok(NULL, ":");
+		cracker->filename = new char[strlen(tmpfilename)];
+		strcpy(cracker->filename, tmpfilename);
+	}
+	return 0;
+}
+
+void Generateur::split_work() {
+	int mmm = max-min;
+	L = new int[mt];
+	A = new uint_big[mt];
+	arrayofindex = new int **[mt];
+	for(int t=0; t<mt; t++){
+		L[t] = 0;
+		A[t] = 0;
+		arrayofindex[t] = new int *[mmm+1];
+		for(int a=0; a<=mmm; a++) {
+			arrayofindex[t][a] = new int[min+a];
+			uint_big step = powi(length, min+a) / mt * t;
+			for(int b=0; b<min+a; b++) {
+				arrayofindex[t][a][b] = step % length;
+				step /= length;
+			}
+		}
+	}
+	Counter = 0;
 }
 
 void Generateur::save() {
@@ -91,31 +141,33 @@ void Generateur::save() {
 	fprintf(fd, "%d:", Generateur::min);
 	fprintf(fd, "%d:", Generateur::max);
 	fprintf(fd, "%s:", Generateur::arrayofchars);
-	fprintf(fd, "%d:", Generateur::progressive);
-	fprintf(fd, "%d:", Generateur::loop2);
-	fprintf(fd, "%d:", Generateur::x);
-	fprintf(fd, "%s:", big2str(Generateur::a));
-	for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
-	    for(int b=0; b < Generateur::min+a; ++b)
-			fprintf(fd, "%d:", Generateur::arrayofindex[a][b]); 
+	fprintf(fd, "%s:", big2str(Generateur::Counter));
+	for(int t=0; t<mt; t++) {
+		fprintf(fd, "%d:", Generateur::loop[t]);
+		fprintf(fd, "%s:", big2str(Generateur::a[t]));
+		for(int a=0; a<=Generateur::max-Generateur::min; ++a)
+			for(int b=0; b < Generateur::min+a; ++b)
+				fprintf(fd, "%d:", Generateur::arrayofindex[t][a][b]); 
 	}
-	exit(0);
+	fprintf(fd, "%d:", cracker->crack);
+	if(cracker->crack)
+		fprintf(fd, "%s:", cracker->filename);
+	fclose(fd);
 }
 
-bool Generateur::gen_next(int loop, unsigned char *word, int step) {
-	short unsigned int mpl = Generateur::min+loop, i;
-	int over = 0;
-
-	for(i=0; i<mpl; i++) {
-		word[i] = arrayofchars[arrayofindex[loop][i]];	
+void Generateur::gen_next(int t, int loop2, char *word) {
+	short unsigned int mpl = Generateur::min+loop2, i;
+	uint_big r2 = r[t][loop2];
+	r[t][loop2]+=length;
+	word[0] = arrayofchars[arrayofindex[t][loop2][0]];
+	for(i=1; i<mpl; i++) {
+		word[i] = arrayofchars[(arrayofindex[t][loop2][i]+r2)%length];	
+		r2 -= r2 / 2;
 	}
-	for(i=0; i<mpl; i++) {
-		if(++arrayofindex[loop][i] >= step) {
-			arrayofindex[loop][i] = 0;
-			over = 1;
-			break;
-		}
+	int pos = 0;
+	while(pos < mpl && ++arrayofindex[t][loop2][pos] >= length) {
+		arrayofindex[t][loop2][pos] = 0;
+		pos ++;
 	}
 	word[mpl] = '\0';
-	return over;
 }

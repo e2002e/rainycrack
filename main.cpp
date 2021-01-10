@@ -2,201 +2,313 @@
 #include <cstdbool>
 #include <cstdio>
 #include <cstring>
+#include <unistd.h>
 #include <cmath>
 #include <signal.h>
+#include <thread>
 #include <omp.h>
-#include "generateur.h"
-#include "md5.h"
+#include <FL/Fl.H>
+#include <FL/Fl_File_Input.H>
+#include <FL/Fl_Window.H>
+#include <FL/Fl_Button.H>
+#include <FL/Fl_Spinner.H>
+#include <FL/Fl_Progress.H>
+#include <FL/Fl_Timer.H>
+#include <FL/Fl_Multiline_Output.H>
 
-bool check = 0;
-bool stop = false;
+#include "generateur.h"
+#include "cracker.h"
+
+bool stop;
+bool addnl;
+int mt = omp_get_max_threads();
+
+class Ui_options {
+	public:
+	int min;
+	int max;
+	char *set;
+	char *hashfile;
+	bool crack;
+	bool restore;
+};
+
+Generateur *generateur;
+Cracker *cracker;
+Ui_options *options;
+
+Fl_Spinner *spin0;
+Fl_Spinner *spin1;
+Fl_Input *in;
+Fl_Button *rbutton;
+Fl_Button *pbutton;
+Fl_Button *cbutton;
+Fl_File_Input *file;
+
+//Status
+Fl_Progress *progress;
+Fl_Multiline_Output *output;
+uint_big Total;
 
 extern uint_big powi(uint32_t b, uint32_t p);
 
-void gen(Generateur *generateur) {
+void get_status(void *) {
+	if(!stop) {
+		progress->value((float) generateur->Counter /  (float) Total * 100.0f);
+		//generateur->save();
+	}
+	Fl::repeat_timeout(2.0, get_status);
+}
+
+void generate(Fl_Widget * widget) {	
 	int mmm = generateur->max-generateur->min;
+	//int found = 0;
+	//don't let the run button be pushed untill done
+	widget->deactivate();
+
 	/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
-	the bound with subtotal, this is mandatory since we use the value of loop2 to calculate the size of the iteration.
-	This this how we can work on all the lengths at the same time.*/
-	for(generateur->x=generateur->X; generateur->x<=generateur->length*generateur->progressive; ++generateur->x) 
+	the bound with subtotal*/
+	#pragma omp parallel for if(cracker->crack)
+	for(int t=0 ; t<mt; ++t) 
 	{
-		for(generateur->loop2=generateur->L; generateur->loop2 <= mmm; ++generateur->loop2) {
-			int mpl = generateur->min+generateur->loop2;
+		for(generateur->loop[t]=generateur->L[t]; generateur->loop[t] <= mmm; ++generateur->loop[t]) {
+			int mpl = generateur->min+generateur->loop[t];
 
-			uint_big total;
-			if(generateur->progressive)
-				total = powi(generateur->x, mpl);
-			else
+			uint_big total; 
+			if(generateur->min == 1 && generateur->loop[t] == 0) {
+				if(t == 0)
+					total = generateur->length;
+				else total = 0;
+			}
+			else {
 				total = powi(generateur->length, mpl);
-
+				if(t == 0) {
+					total /= mt;
+					total += powi(generateur->length, mpl) % mt;
+				}
+				else total /= mt;
+			}
 			uint_big subtotal = 0;
-			if(generateur->loop2 > 0)
-				if(generateur->progressive)
-					subtotal = powi(generateur->x, mpl-1);
-				else
+			if(generateur->loop[t] > 0) {
+				if(generateur->loop[t] == 1) {
+					if(t == 0)
+						subtotal = generateur->length;
+					else subtotal = 0;
+				}
+				else {
 					subtotal = powi(generateur->length, mpl-1);
-
-			for(generateur->a = generateur->A; generateur->a < total - subtotal; ++generateur->a) {
-				if(stop)
+					if(t == 0) {
+						subtotal /= mt;
+						subtotal += powi(generateur->length, mpl-1) % mt;
+					}
+					else subtotal /= mt;
+				}
+			}
+			for(generateur->a[t] = generateur->A[t]; generateur->a[t] < (total - subtotal); ++generateur->a[t]) {
+				if(stop) {
 					generateur->save();
+					t = mt;
+					goto end;
+				}
 				//the inner loop on the lengths
-				for(int loop = generateur->loop2; loop <= mmm; ++loop) {
-					unsigned char tmp[generateur->min+loop];
-					if(stop)
+				for(int loop2 = generateur->loop[t]; loop2 <= mmm; ++loop2) {
+					if(stop) {
 						generateur->save();
-					if(generateur->progressive == 1) {
-						if(generateur->gen_next(loop, tmp, generateur->x))
-							printf("%s\n", tmp);
+						t = mt;//this evades omp block
+						goto end;
 					}
-					else {
-						generateur->gen_next(loop, tmp, generateur->length);
-						if(generateur->crack) {
-							for(int h=0; h<generateur->H; ++h) {
-								uint32_t hash[4];
-								md5_hash(tmp, generateur->min+loop, hash);
-								if(memcmp(hash, generateur->md5[h], sizeof(hash)) == 0) {
-									printf("%s\n", tmp);
-								}
-							}
-						}
-						else
-							printf("%s\n", tmp);
+					char word[generateur->min+loop2];
+					generateur->gen_next(t, loop2, word);
+					if(cracker->crack) {
+						if(cracker->hash_check(word)) {
+							stop = true;
+							progress->value(100.0f);
+						}						
 					}
+					else
+						printf("%s\n", word);
+					#pragma omp critical
+					generateur->Counter++;
 				}
 			}
 		}
+		end:;
+	}
+	Fl::remove_timeout(get_status);
+	//we could lack about 2 seconds of status/output
+	get_status(NULL);
+	output->redraw();
+
+	widget->activate();
+	stop = true;
+
+	delete [] generateur->arrayofindex;
+	delete generateur->arrayofchars;
+	delete generateur->loop;
+	delete generateur->a;
+	delete generateur->L;
+	delete generateur->A;
+}
+
+void set_restore(Fl_Widget *widget, void *) {
+	Fl_Button *b = (Fl_Button *) widget;
+	if(b->value()) {
+		options->restore = true;
+	}
+	else {
+		options->restore = false;
 	}
 }
 
-void showhelp() {
-	printf(\
-		"RainyCrack:\n\n"
-		" Password generator with deep mangling.\n"
-		" Arguments:\n"
-	  	"  ./rc [ min max --set | -set | -s \"set\" ] \n"
-	  	"     [ -r | -restore | --restore ]\n"
-		"     [ -p | -progressive | --progressive ]\n\n"
-		
-		" When using the -p option, mind the order of the character set. Hint:\n"
-		" aeorisn1tl2md0cp3hbuk45g9687yfwjvzxqASERBTMLNPOIDCHGKFJUW.!Y*@V-ZQX\n _$#,/+?;^ %%~=&`\\)][:<(æ>\"ü|{'öä}\n\n"
-	);
-}
+void gen(Fl_Widget *widget, void *) {
+	if(options->restore) {
+		if(generateur->restore())
+			return;		
+	}
+	else {
+		generateur->min = options->min;
+		generateur->max = options->max;
 
-//this sets a global var tested in the gen() function => do we stop ?
-static void signalHandler(int sig) {
+		cracker->crack = options->crack;
+
+		if(cracker->crack) {
+			cracker->filename = new char[strlen(file->value())];
+			memset(cracker->filename, '\0', sizeof(cracker->filename));
+			strcpy(cracker->filename, file->value());
+			if(cracker->filename == NULL) {
+				delete cracker->filename;
+				return;
+			}
+			if(cracker->import_hashes())
+				return;//filename will be freed inside this function if failure occurs
+		}
+		generateur->length = strlen(options->set);
+		generateur->arrayofchars = new char[generateur->length];
+		strcpy(generateur->arrayofchars, options->set);
+
+		generateur->split_work();
+	}
+	generateur->loop = new int [mt];
+	generateur->a = new uint_big [mt];
+	generateur->r = new uint_big *[mt];
+	//not setting these will write wrong values in the restore file if no thread is used.
+	int mmm = generateur->max-generateur->min;
+	for(int t=0; t<mt; t++) {
+		generateur->loop[t] = 0;
+		generateur->a[t] = 0;
+		generateur->r[t] = new uint_big[mmm+1];
+		for(int a=0; a<=mmm; a++)
+			generateur->r[t][a] = 0;
+	}
+	Total = 0;
+	for(int c=0; c<=mmm; ++c)
+		Total += powi(generateur->length, c+generateur->min);
+
+	Fl::add_timeout(2.0, get_status);
+	stop = false;
+	std::thread th(generate, widget);
+	th.detach();
+}
+void save(Fl_Widget *widget, void *) {
 	stop = true;
 }
 
-int main(int argc, char *argv[]) {
-	int arg;
-	
-	signal(SIGKILL,signalHandler);
-	signal(SIGINT, signalHandler);
+void set_minlength(Fl_Widget *spin, void *) {
+	Fl_Spinner *spinner = (Fl_Spinner*) spin;
+	options->min = (int) spinner->value();
+}
 
-	Generateur *generateur = new Generateur;	
-	generateur->progressive = false;	
-	generateur->crack = false;
-	
-	if(argc > 2) {
-	    if(!(generateur->min = atoi(argv[1]))) { fprintf(stderr, "Invalid minimum length: %d ...\n", generateur->min); exit(-1); }
-		if(!(generateur->max = atoi(argv[2]))) { fprintf(stderr, "Invalid maximum length: %d ...\n", generateur->max); exit(-1); }
-		
-		for(arg=3; arg<argc; arg++) {
-			if(strcmp(argv[arg], "--set") == 0 || strcmp(argv[arg], "-set") == 0 || strcmp(argv[arg], "-s") == 0) {
-				generateur->length	= strlen(argv[arg+1]);
-				generateur->arrayofchars = new char[generateur->length];
-				strcpy(generateur->arrayofchars, argv[arg+1]);
-				check = 1;
-			}
-			if(strcmp(argv[arg], "--restore") == 0 || strcmp(argv[arg], "-restore") == 0 || strcmp(argv[arg], "-r") == 0) {
-				fprintf(stderr, "Use restore option as only parameter.\n");
-				exit(-1);
-			}
-			if(strcmp(argv[arg], "--progressive") == 0 || strcmp(argv[arg], "-progressive") == 0 || strcmp(argv[arg], "-p") == 0) {
-				generateur->progressive = 1;
-			}
-			if(strcmp(argv[arg], "--crack") == 0 || strcmp(argv[arg], "-crack") == 0 || strcmp(argv[arg], "-c") == 0) {
-				generateur->crack = true;
-				if(strcmp(argv[arg+1], "md5") == 0)
-					generateur->type = 0;
-				else {
-					fprintf(stderr, "Hash type unknown.\n");
-					exit(-1);
-				}
-				FILE *fd = fopen(argv[arg+2], "r");
-			 	if(fd == NULL)
-			 	{
-					fprintf(stderr, "Incorrect file path.\n");
-					exit(-1);
-				} 
-				int filesize = 0;
-				int h;
-				do {
-					++filesize;
-					int c = getc(fd);
-					if(c == '\n') generateur->H++;
-				} while(!feof(fd));
-				fseek(fd, 0, SEEK_SET);
+void set_maxlength(Fl_Widget *spin, void *) {
+	Fl_Spinner *spinner = (Fl_Spinner*) spin;
+	options->max = (int) spinner->value();
+}
 
-				unsigned char **tmp = new unsigned char *[generateur->H];
-				generateur->md5 = new uint32_t *[generateur->H];
-				for(int i=0; i<generateur->H; ++i) {
-					tmp[i] = new unsigned char[33];
-					fread(tmp[i], 33, 1, fd);
-					generateur->md5[i] = new uint32_t[4];
-					for(int j=0; j < 4; j++) {
-						char tmp2[8], tmp3[8];
-						strncpy(tmp2, (char*)&tmp[i][j*8], 8);
-						for(int k=0; k<8; ++k) {
-							tmp3[k] = tmp2[7-k];
-						}
-						for(int l=0; l<8; l+=2) {
-							char c = tmp3[l];
-							tmp3[l] = tmp3[l+1];
-							tmp3[l+1] = c;
-						}
-						generateur->md5[i][j] = strtol((char*)tmp3, NULL, 16);
-					}
-				}
-				fclose(fd);
-			}
-		}
-		if(!check) { fprintf(stderr, "Needs input characters: --set option.\n"); exit(-1); }
-	    else {
-		    generateur->L = 0;
-		    generateur->A = 0;
-		    generateur->X = 0;
-		    int mmm = generateur->max-generateur->min;
-		    generateur->arrayofindex = new int *[mmm+1];
-		    for(int a=0; a<=mmm; ++a) {
-				generateur->arrayofindex[a] = new int [generateur->max];
-				for(int i=0; i<generateur->max; ++i)
-		            generateur->arrayofindex[a][i] = 0;
-		    }        
-	    }
-	}
-	else if(argc == 2 && (strcmp(argv[1], "-r") == 0 || strcmp(argv[1], "--restore") == 0 || strcmp(argv[1], "-restore") == 0)) {
-		FILE *fd = fopen("restore", "r");
-		if(fd == NULL)
-		{
-			fprintf(stderr, "Either you removed the restore file, or you did not interupt a session.\n");
-			exit(-1);
-		}
-		int filesize = 0;
-		do {
-			++filesize;
-			getc(fd);
-		} while(!feof(fd));//unroll the whole file to get the character's count. Yes C/C++ is ...
-		generateur->buff = new char[filesize];
-		fseek(fd, 0, SEEK_SET);
-		fread(generateur->buff, filesize, 1, fd);
-		fclose(fd);
-		generateur->restore();		
+void set_set(Fl_Widget *in, void *) {
+	Fl_Input * input = (Fl_Input*) in;
+	delete options->set;
+	options->set = new char[strlen(input->value())];
+	strcpy(options->set, input->value());
+}
+
+void set_crack(Fl_Widget *button, void *) {
+	Fl_Button *b = (Fl_Button *) button;
+	if(b->value()) {
+		options->crack = true;
 	}
 	else {
-		showhelp();
-		exit(0);
+		options->crack = false;
 	}
-	gen(generateur);
+}
+
+int main(int argc, char *argv[]) {
+	int wwidth = Fl::w() / 2;
+	int wheight = Fl::h() / 2;
+	int arg;
+	omp_set_nested(1);
+
+	stop = true;
+	addnl = false;
+	generateur = new Generateur;
+
+	cracker = new Cracker;
+
+	options = new Ui_options;
+	options->crack = false;
+	options->restore = false;
+	Fl_Window *window = new Fl_Window(wwidth, wheight);
+
+	//Set default for bare necessary
+	spin0 = new Fl_Spinner(wwidth/32, wheight/16, wwidth/2-wwidth/16, wheight/16, "Min");
+	spin0->value(1);
+	spin0->minimum(1);
+	spin0->maximum(100);
+	options->min = 1;
+	spin1 = new Fl_Spinner(wwidth/2+wwidth/32, wheight/16, wwidth/2-wwidth/16, wheight/16, "Max");
+	spin1->value(7);
+	spin1->minimum(1);
+	spin1->maximum(100);
+	options->max = 7;
+	spin0->align(FL_ALIGN_TOP);
+	spin1->align(FL_ALIGN_TOP);
+	spin0->callback(set_minlength);
+	spin1->callback(set_maxlength);
+
+	in = new Fl_Input(wwidth/32, wheight/16*2+wheight/32, wwidth-wwidth/16, wheight/8, "Set");
+	//in->value("aeorisntlmdcphbukgyfwjvzxq");
+	in->value("0123456789");
+	
+	in->align(FL_ALIGN_TOP);
+	in->callback(set_set);
+
+	options->set = new char[strlen(in->value())];
+	strcpy(options->set, in->value());
+
+	Fl_Button *run = new Fl_Button(wwidth/32, wheight/16*5, wwidth/2-wwidth/16, wheight/12, "Run");
+	Fl_Button *halt = new Fl_Button(wwidth/2+wwidth/32, wheight/16*5, wwidth/2-wwidth/16, wheight/12, "Stop");
+	run->callback(gen);
+	halt->callback(save);
+
+	progress = new Fl_Progress(wwidth/32, wheight/2-wheight/10, wwidth-wwidth/16, wheight/32);
+	progress->selection_color(FL_BLUE);
+	progress->minimum(0);
+	progress->maximum(100);
+
+	file = new Fl_File_Input(wwidth/32, wheight/2, wwidth-wwidth/16, wheight/12, "Hash file's path:");
+	file->align(FL_ALIGN_TOP);
+
+	
+	rbutton = new Fl_Button(wwidth/32, wheight/2+wheight/8, wwidth/2-wwidth/16, wheight/12, "Restore");
+	rbutton->type(FL_TOGGLE_BUTTON);
+	rbutton->callback(set_restore);
+
+	cbutton = new Fl_Button((wwidth/2+wwidth/32), wheight/2+wheight/8, wwidth/2-wwidth/16, wheight/12, "Hash attack");
+	cbutton->type(FL_TOGGLE_BUTTON);
+	cbutton->callback(set_crack);
+
+	output = new Fl_Multiline_Output(wwidth/32, wheight/2+wheight/4-wheight/32, wwidth-wwidth/16, wheight/4);
+
+	window->end();
+	window->show(argc, argv);
+	return Fl::run();
 }
 

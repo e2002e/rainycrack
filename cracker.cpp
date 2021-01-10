@@ -1,6 +1,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <omp.h>
 #include <FL/Fl_Output.H>
 #include "cracker.h"
 #include "md5.h"
@@ -56,7 +57,6 @@ bool Cracker::hash_check(char *message) {
 	unsigned int hash[4];
 	md5_hash((unsigned char*) message, strlen(message), hash);		
 	bool done = true;
-	#pragma omp parallel for
 	for(int h=0; h<H; ++h) {
 		if(md5[h]) {
 			done = false;
