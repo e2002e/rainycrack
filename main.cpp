@@ -8,6 +8,7 @@
 #include <thread>
 #include <omp.h>
 #include <FL/Fl.H>
+#include <FL/fl_ask.H>
 #include <FL/Fl_File_Input.H>
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Button.H>
@@ -21,7 +22,7 @@
 
 bool stop;
 bool addnl;
-int mt = 1;//omp_get_max_threads();
+int mt = omp_get_max_threads();
 
 class Ui_options {
 	public:
@@ -61,20 +62,20 @@ void get_status(void *) {
 }
 
 void generate(Fl_Widget * widget) {	
-	int mmm = generateur->max-generateur->min;
-	//int found = 0;
 	//don't let the run button be pushed untill done
 	widget->deactivate();
-
-	/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
-	the bound with subtotal*/
+	//int found = 0;
 	#pragma omp parallel for if(cracker->crack)
 	for(int t=0 ; t<mt; ++t) 
 	{
+		/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
+		the bound with subtotal*/
+		int mmm = generateur->max-generateur->min;
 		for(generateur->loop[t]=generateur->L[t]; generateur->loop[t] <= mmm; ++generateur->loop[t]) {
 			int mpl = generateur->min+generateur->loop[t];
  
  			uint_big total;
+ 			
 			if(generateur->min == 1 && generateur->loop[t] == 0) {
 				if(t == 0)
 					total = generateur->length;
@@ -117,7 +118,6 @@ void generate(Fl_Widget * widget) {
 						t = mt;//this evades omp block
 						goto end;
 					}
-
 					char word[generateur->min+loop2];
 					generateur->gen_next(t, loop2, word);
 					
@@ -185,14 +185,20 @@ void gen(Fl_Widget *widget, void *) {
 				return;//filename will be freed inside this function if failure occurs
 		}
 		generateur->length = strlen(options->set);
+		if(generateur->length % 2) {
+			fl_message("Tacking doesn't work with odd character set's length");
+			if(cracker->crack) {
+				delete cracker;
+			}
+			return;
+		}
 		generateur->arrayofchars = new char[generateur->length];
 		strcpy(generateur->arrayofchars, options->set);
-
+		
 		generateur->split_work();
 	}
 	generateur->loop = new int [mt];
 	generateur->a = new uint_big [mt];
-	generateur->r = new uint_big *[mt];
 	//not setting these will write wrong values in the restore file if no multithreading is used.
 	int mmm = generateur->max-generateur->min;
 	for(int t=0; t<mt; t++) {
@@ -260,42 +266,39 @@ int main(int argc, char *argv[]) {
 	spin0 = new Fl_Spinner(wwidth/32, wheight/16, wwidth/2-wwidth/16, wheight/16, "Min");
 	spin0->value(1);
 	spin0->minimum(1);
-	spin0->maximum(100);
+	spin0->maximum(32);
 	options->min = 1;
 	spin1 = new Fl_Spinner(wwidth/2+wwidth/32, wheight/16, wwidth/2-wwidth/16, wheight/16, "Max");
-	spin1->value(7);
+	spin1->value(6);
 	spin1->minimum(1);
-	spin1->maximum(100);
-	options->max = 7;
+	spin1->maximum(32);
+	options->max = 6;
 	spin0->align(FL_ALIGN_TOP);
 	spin1->align(FL_ALIGN_TOP);
 	spin0->callback(set_minlength);
 	spin1->callback(set_maxlength);
 
 	in = new Fl_Input(wwidth/32, wheight/16*2+wheight/32, wwidth-wwidth/16, wheight/8, "Set");
-	//in->value("aeorisntlmdcphbukgyfwjvzxq");
-	in->value("0123456789");
-	
+	in->value("aeorisn1tl2md0cp3hbuk45g9687yfwjvzxq");//ASERBTMLNPOIDCHGKFJUWYVZQX
 	in->align(FL_ALIGN_TOP);
 	in->callback(set_set);
 
 	options->set = new char[strlen(in->value())];
 	strcpy(options->set, in->value());
 
-	Fl_Button *run = new Fl_Button(wwidth/32, wheight/16*5, wwidth/2-wwidth/16, wheight/12, "Run");
-	Fl_Button *halt = new Fl_Button(wwidth/2+wwidth/32, wheight/16*5, wwidth/2-wwidth/16, wheight/12, "Stop");
-	run->callback(gen);
-	halt->callback(save);
-
-	progress = new Fl_Progress(wwidth/32, wheight/2-wheight/10, wwidth-wwidth/16, wheight/32);
+	progress = new Fl_Progress(wwidth/32, wheight/4+wheight/16, wwidth-wwidth/16, wheight/32);
 	progress->selection_color(FL_BLUE);
 	progress->minimum(0);
 	progress->maximum(100);
 
+	Fl_Button *run = new Fl_Button(wwidth/32, wheight/4 + wheight/8, wwidth/2-wwidth/16, wheight/12, "Run");
+	Fl_Button *halt = new Fl_Button(wwidth/2+wwidth/32, wheight/4 + wheight/8, wwidth/2-wwidth/16, wheight/12, "Stop");
+	run->callback(gen);
+	halt->callback(save);
+
 	file = new Fl_File_Input(wwidth/32, wheight/2, wwidth-wwidth/16, wheight/12, "Hash file's path:");
 	file->align(FL_ALIGN_TOP);
 
-	
 	rbutton = new Fl_Button(wwidth/32, wheight/2+wheight/8, wwidth/2-wwidth/16, wheight/12, "Restore");
 	rbutton->type(FL_TOGGLE_BUTTON);
 	rbutton->callback(set_restore);

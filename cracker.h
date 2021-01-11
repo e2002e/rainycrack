@@ -1,5 +1,6 @@
 class Cracker {
 	public:
+	~Cracker();
 	bool crack;
 	unsigned int type;
 	bool import_hashes();

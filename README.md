@@ -1,4 +1,5 @@
 # rainycrack
-Generates words in a non linear fashion.  
+Generates words by tacking, the bruteforce entropy is reduced by two and spans from the two sides.  
 Treats all the lengths together.  
-!Only works with even character sets!  
+!Only works with even length character sets!  
+

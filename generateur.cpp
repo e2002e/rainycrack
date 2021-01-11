@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdint.h>
+#include <FL/fl_ask.H>
 #include "generateur.h"
 #include "cracker.h"
 
@@ -65,7 +66,7 @@ uint_big str2big(char *str) {
 bool Generateur::restore() {
 	FILE *fd = fopen("restore", "r");
 	if(fd == NULL) {
-		fprintf(stderr, "Either you removed the restore file, or you did not interupt a single session.\n");
+		fl_message("Either you removed the restore file, or you did not interupt a single session.");
 		return 1;
 	}
 	int filesize = 0;
@@ -88,22 +89,25 @@ bool Generateur::restore() {
 	Generateur::arrayofchars = new char[Generateur::length];
 	strcpy(Generateur::arrayofchars, tmparrayofchars);
 
-	char *tmpstr2 = strtok(NULL, ":");
-	Generateur::Counter = str2big(tmpstr2);
+	char *tmpstr = strtok(NULL, ":");
+	Generateur::Counter = str2big(tmpstr);
 
 	arrayofindex = new int **[mt];
+	tacke = new uint_big *[mt];
 	L = new int [mt];
 	A = new uint_big [mt];
 	for(int t=0; t<mt; t++) {
-		//starting value for the loops
-		Generateur::L[t] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
-		char *tmpstr = strtok(NULL, ":");
-		Generateur::A[t] = str2big(tmpstr);
 		Generateur::arrayofindex[t] = new int *[mmm+1];	
+		tacke[t] = new uint_big [mmm+1];
+		Generateur::L[t] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
+		char *tmpstr2 = strtok(NULL, ":");
+		Generateur::A[t] = str2big(tmpstr2);
 		for(int a=0; a<=mmm; ++a) {
 			Generateur::arrayofindex[t][a] = new int[Generateur::min+a];
+		 	char *tmpstr3 = strtok(NULL, ":");
+		 	tacke[t][a] = str2big(tmpstr3);
 		 	for(int b=0; b<Generateur::min+a; ++b)
-	 	    	Generateur::arrayofindex[t][a][b] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
+	 	   		Generateur::arrayofindex[t][a][b] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
 		}
 	}
 	cracker->crack = (bool) strtoul(strtok(NULL, ":"), NULL, 10);
@@ -120,16 +124,21 @@ void Generateur::split_work() {
 	L = new int[mt];
 	A = new uint_big[mt];
 	arrayofindex = new int **[mt];
+	tacke = new uint_big *[mt];
 	for(int t=0; t<mt; t++){
 		L[t] = 0;
 		A[t] = 0;
+		tacke[t] = new uint_big[mmm+1];
 		arrayofindex[t] = new int *[mmm+1];
 		for(int a=0; a<=mmm; a++) {
+			tacke[t][a] = 0;
 			arrayofindex[t][a] = new int[min+a];
-			uint_big load = powi(length, min+a) * t / mt;
+			uint_big load = powi(length, min+a) * t / mt; 
+			if((min+a)%2 == 0 && min+a > 3)
+				load -= load / 2;
 			for(int b=0; b<min+a; b++) {
 				arrayofindex[t][a][b] = load % length;
-				load /= length;	
+				load /= length;
 			}
 		}
 	}
@@ -145,9 +154,11 @@ void Generateur::save() {
 	for(int t=0; t<mt; t++) {
 		fprintf(fd, "%d:", Generateur::loop[t]);
 		fprintf(fd, "%s:", big2str(Generateur::a[t]));
-		for(int a=0; a<=Generateur::max-Generateur::min; ++a)
+		for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
+			fprintf(fd, "%s:", big2str(Generateur::tacke[t][a]));	
 			for(int b=0; b < Generateur::min+a; ++b)
 				fprintf(fd, "%d:", Generateur::arrayofindex[t][a][b]); 
+		}
 	}
 	fprintf(fd, "%d:", cracker->crack);
 	if(cracker->crack)
@@ -155,31 +166,24 @@ void Generateur::save() {
 	fclose(fd);
 }
 
-unsigned int step = 0;
-
 void Generateur::gen_next(int t, int loop2, char *word) {
-	short unsigned int mpl = Generateur::min+loop2, i;
-	step += 3;
-	if(step > mpl) {
-		step = 3;
-	}
-	char tmp[mpl];
-	for(i=0; i<mpl; i++) {
-		if(a[t] % 2 || mpl == 2) {
+	short unsigned int mpl = Generateur::min+loop2;
+	for(int i=0; i<mpl; i++) {
+		if(tacke[t][loop2] % 2 || mpl < 4) {
 				word[i] = arrayofchars[arrayofindex[t][loop2][i]];
 		}
-		else if(a[t] % 2 == 0) {
+		else {
 				word[i] = arrayofchars[arrayofindex[t][loop2][mpl-i-1]];	
 		}
 	}
-	if(a[t] % 2 || mpl == 2) {
+	if(tacke[t][loop2] % 2|| mpl < 4) {
 		int pos = 0;
 		while(pos < mpl && ++arrayofindex[t][loop2][pos] >= length) {
 			arrayofindex[t][loop2][pos] = 0;
 			pos++;
 		}
 	}
-	else if(a[t] % 2 == 0) {
+	else {
 		for(int pos = mpl-1; pos >= 0; pos--) {
 			if(mpl%2 == 0) {
 				if(pos <= mpl / 2)
@@ -190,5 +194,6 @@ void Generateur::gen_next(int t, int loop2, char *word) {
 			else break;
 		}
 	}
+	tacke[t][loop2]++;
 	word[mpl] = '\0';
 }

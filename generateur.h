@@ -17,7 +17,7 @@ class Generateur {
 
 	void gen_next(int, int, char *);
 
-	uint_big **r;
+	uint_big **tacke;	//bruteforcing on two sides is tacking
 	//save/restore
 	void save();	
 	bool restore();

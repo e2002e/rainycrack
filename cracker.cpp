@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <omp.h>
+#include <FL/fl_ask.H>
 #include <FL/Fl_Output.H>
 #include "cracker.h"
 #include "md5.h"
@@ -12,6 +13,7 @@ extern Fl_Output *output;
 bool Cracker::import_hashes() {
 	FILE *fd = fopen(filename, "r");
 	if(fd == NULL) {
+		fl_message("Check your file's path");
 		delete filename;
 		return 1;
 	}
@@ -57,9 +59,9 @@ bool Cracker::hash_check(char *message) {
 	unsigned int hash[4];
 	md5_hash((unsigned char*) message, strlen(message), hash);		
 	bool done = true;
+	//#pragma omp parallel for
 	for(int h=0; h<H; ++h) {
-		if(md5[h]) 
-		{
+		if(md5[h]) {
 			done = false;
 			if(memcmp(hash, md5[h], sizeof(hash)) == 0) {
 				//display related
@@ -81,14 +83,21 @@ bool Cracker::hash_check(char *message) {
 				fwrite((void *) "\n", 1, 1, found);
 				fclose(found);
 				//delete
-				md5[h] = NULL;
-				delete md5[h];
+				//#pragma omp critical
+				{
+					md5[h] = NULL;
+					delete md5[h];
+				}
 			}
 		}
 	}
 	return done;
 }
 
+Cracker::~Cracker() {
+	delete [] hashlist;
+	delete [] md5;
+}
 
 
 
