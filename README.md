@@ -1,3 +1,4 @@
 # rainycrack
 Generates words in a non linear fashion.  
-Only works with even character sets as of now.  
+Treats all the lengths together.  
+!Only works with even character sets!  
