@@ -126,10 +126,10 @@ void Generateur::split_work() {
 		arrayofindex[t] = new int *[mmm+1];
 		for(int a=0; a<=mmm; a++) {
 			arrayofindex[t][a] = new int[min+a];
-			uint_big step = powi(length, min+a) / mt * t;
+			uint_big load = powi(length, min+a) * t / mt;
 			for(int b=0; b<min+a; b++) {
-				arrayofindex[t][a][b] = step % length;
-				step /= length;
+				arrayofindex[t][a][b] = load % length;
+				load /= length;	
 			}
 		}
 	}
@@ -155,19 +155,40 @@ void Generateur::save() {
 	fclose(fd);
 }
 
+unsigned int step = 0;
+
 void Generateur::gen_next(int t, int loop2, char *word) {
 	short unsigned int mpl = Generateur::min+loop2, i;
-	uint_big r2 = r[t][loop2];
-	r[t][loop2]+=length;
-	word[0] = arrayofchars[arrayofindex[t][loop2][0]];
-	for(i=1; i<mpl; i++) {
-		word[i] = arrayofchars[(arrayofindex[t][loop2][i]+r2)%length];	
-		r2 -= r2 / 2;
+	step += 3;
+	if(step > mpl) {
+		step = 3;
 	}
-	int pos = 0;
-	while(pos < mpl && ++arrayofindex[t][loop2][pos] >= length) {
-		arrayofindex[t][loop2][pos] = 0;
-		pos ++;
+	char tmp[mpl];
+	for(i=0; i<mpl; i++) {
+		if(a[t] % 2 || mpl == 2) {
+				word[i] = arrayofchars[arrayofindex[t][loop2][i]];
+		}
+		else if(a[t] % 2 == 0) {
+				word[i] = arrayofchars[arrayofindex[t][loop2][mpl-i-1]];	
+		}
+	}
+	if(a[t] % 2 || mpl == 2) {
+		int pos = 0;
+		while(pos < mpl && ++arrayofindex[t][loop2][pos] >= length) {
+			arrayofindex[t][loop2][pos] = 0;
+			pos++;
+		}
+	}
+	else if(a[t] % 2 == 0) {
+		for(int pos = mpl-1; pos >= 0; pos--) {
+			if(mpl%2 == 0) {
+				if(pos <= mpl / 2)
+					break;
+			}
+			if(++arrayofindex[t][loop2][pos] >= length)
+				arrayofindex[t][loop2][pos] = 0;
+			else break;
+		}
 	}
 	word[mpl] = '\0';
 }

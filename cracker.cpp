@@ -58,9 +58,11 @@ bool Cracker::hash_check(char *message) {
 	md5_hash((unsigned char*) message, strlen(message), hash);		
 	bool done = true;
 	for(int h=0; h<H; ++h) {
-		if(md5[h]) {
+		if(md5[h]) 
+		{
 			done = false;
 			if(memcmp(hash, md5[h], sizeof(hash)) == 0) {
+				//display related
 				const char *previous = output->value();
 				char tmp[strlen(previous)+strlen(message)+32];
 				strcpy(tmp, previous);
@@ -69,16 +71,18 @@ bool Cracker::hash_check(char *message) {
 				strcpy(&tmp[strlen(previous)+32+addnl], ":");
 				strcpy(&tmp[strlen(previous)+33+addnl], message);
 				addnl = true;
-
 				output->value(tmp);
 				
+				//pot
 				FILE *found = fopen("rc.pot", "a");
 				fwrite((void *) hashlist[h], 32, 1, found);
 				fwrite((void *) ":", 1, 1, found);
 				fwrite((void *) message, strlen(message), 1, found);
 				fwrite((void *) "\n", 1, 1, found);
 				fclose(found);
+				//delete
 				md5[h] = NULL;
+				delete md5[h];
 			}
 		}
 	}

@@ -21,7 +21,7 @@
 
 bool stop;
 bool addnl;
-int mt = omp_get_max_threads();
+int mt = 1;//omp_get_max_threads();
 
 class Ui_options {
 	public:
@@ -74,7 +74,8 @@ void generate(Fl_Widget * widget) {
 		for(generateur->loop[t]=generateur->L[t]; generateur->loop[t] <= mmm; ++generateur->loop[t]) {
 			int mpl = generateur->min+generateur->loop[t];
 
-			uint_big total; 
+			uint_big total = powi(generateur->length, mpl); 
+			/*
 			if(generateur->min == 1 && generateur->loop[t] == 0) {
 				if(t == 0)
 					total = generateur->length;
@@ -87,7 +88,7 @@ void generate(Fl_Widget * widget) {
 					total += powi(generateur->length, mpl) % mt;
 				}
 				else total /= mt;
-			}
+			}*/
 			uint_big subtotal = 0;
 			if(generateur->loop[t] > 0) {
 				if(generateur->loop[t] == 1) {
@@ -117,8 +118,10 @@ void generate(Fl_Widget * widget) {
 						t = mt;//this evades omp block
 						goto end;
 					}
+
 					char word[generateur->min+loop2];
 					generateur->gen_next(t, loop2, word);
+					
 					if(cracker->crack) {
 						if(cracker->hash_check(word)) {
 							stop = true;
@@ -191,14 +194,11 @@ void gen(Fl_Widget *widget, void *) {
 	generateur->loop = new int [mt];
 	generateur->a = new uint_big [mt];
 	generateur->r = new uint_big *[mt];
-	//not setting these will write wrong values in the restore file if no thread is used.
+	//not setting these will write wrong values in the restore file if no multithreading is used.
 	int mmm = generateur->max-generateur->min;
 	for(int t=0; t<mt; t++) {
 		generateur->loop[t] = 0;
 		generateur->a[t] = 0;
-		generateur->r[t] = new uint_big[mmm+1];
-		for(int a=0; a<=mmm; a++)
-			generateur->r[t][a] = 0;
 	}
 	Total = 0;
 	for(int c=0; c<=mmm; ++c)
