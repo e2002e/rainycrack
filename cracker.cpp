@@ -59,7 +59,6 @@ bool Cracker::hash_check(char *message) {
 	unsigned int hash[4];
 	md5_hash((unsigned char*) message, strlen(message), hash);		
 	bool done = true;
-	//#pragma omp parallel for
 	for(int h=0; h<H; ++h) {
 		if(md5[h]) {
 			done = false;
@@ -75,7 +74,7 @@ bool Cracker::hash_check(char *message) {
 				addnl = true;
 				output->value(tmp);
 				
-				//pot
+				//pot:TODO don't attack already found hashes, and display pot Just like jtr and hashcat.
 				FILE *found = fopen("rc.pot", "a");
 				fwrite((void *) hashlist[h], 32, 1, found);
 				fwrite((void *) ":", 1, 1, found);
@@ -83,11 +82,8 @@ bool Cracker::hash_check(char *message) {
 				fwrite((void *) "\n", 1, 1, found);
 				fclose(found);
 				//delete
-				//#pragma omp critical
-				{
-					md5[h] = NULL;
-					delete md5[h];
-				}
+				md5[h] = NULL;
+				delete md5[h];
 			}
 		}
 	}

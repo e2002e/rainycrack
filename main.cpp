@@ -6,7 +6,7 @@
 #include <cmath>
 #include <signal.h>
 #include <thread>
-#include <omp.h>
+#include <mutex>
 #include <FL/Fl.H>
 #include <FL/fl_ask.H>
 #include <FL/Fl_File_Input.H>
@@ -22,7 +22,8 @@
 
 bool stop;
 bool addnl;
-int mt = omp_get_max_threads();
+std::mutex c, s, s1, s2;
+int mt;
 
 class Ui_options {
 	public:
@@ -54,95 +55,106 @@ uint_big Total;
 extern uint_big powi(uint32_t b, uint32_t p);
 
 void get_status(void *) {
-	if(!stop) {
-		progress->value((float) generateur->Counter /  (float) Total * 100.0f);
-		//generateur->save();
-	}
-	Fl::repeat_timeout(2.0, get_status);
+	progress->value((float) generateur->Counter /  (float) Total * 100.0f);
+	Fl::repeat_timeout(3.0, get_status);
 }
 
-void generate(Fl_Widget * widget) {	
-	//don't let the run button be pushed untill done
-	widget->deactivate();
-	//int found = 0;
-	#pragma omp parallel for if(cracker->crack)
-	for(int t=0 ; t<mt; ++t) 
-	{
-		/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
-		the bound with subtotal*/
-		int mmm = generateur->max-generateur->min;
-		for(generateur->loop[t]=generateur->L[t]; generateur->loop[t] <= mmm; ++generateur->loop[t]) {
-			int mpl = generateur->min+generateur->loop[t];
- 
- 			uint_big total;
- 			
-			if(generateur->min == 1 && generateur->loop[t] == 0) {
+void generate(int t) {	
+	/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
+	the bound with subtotal*/
+	int mmm = generateur->max-generateur->min;
+	for(generateur->loop[t]=generateur->L[t]; generateur->loop[t] <= mmm; ++generateur->loop[t]) {
+		int mpl = generateur->min+generateur->loop[t];
+
+		uint_big total;
+
+		if(generateur->min == 1 && generateur->loop[t] == 0) {
+			if(t == 0)
+				total = generateur->length;
+			else total = 0;
+		}
+		else {
+			total = powi(generateur->length, mpl);
+			if(t == 0) {
+				total /= mt;
+				total += powi(generateur->length, mpl) % mt;
+			}
+			else total /= mt;
+		}
+		uint_big subtotal = 0;
+		if(generateur->loop[t] > 0) {
+			if(generateur->min == 1 && generateur->loop[t] == 1) {
 				if(t == 0)
-					total = generateur->length;
-				else total = 0;
+					subtotal = generateur->length;
+				else subtotal = 0;
 			}
 			else {
-				total = powi(generateur->length, mpl);
+				subtotal = powi(generateur->length, mpl-1);
 				if(t == 0) {
-					total /= mt;
-					total += powi(generateur->length, mpl) % mt;
+					subtotal /= mt;
+					subtotal += powi(generateur->length, mpl-1) % mt;
 				}
-				else total /= mt;
-			}
-			uint_big subtotal = 0;
-			if(generateur->loop[t] > 0) {
-				if(generateur->min == 1 && generateur->loop[t] == 1) {
-					if(t == 0)
-						subtotal = generateur->length;
-					else subtotal = 0;
-				}
-				else {
-					subtotal = powi(generateur->length, mpl-1);
-					if(t == 0) {
-						subtotal /= mt;
-						subtotal += powi(generateur->length, mpl-1) % mt;
-					}
-					else subtotal /= mt;
-				}
-			}
-			for(generateur->a[t] = generateur->A[t]; generateur->a[t] < (total - subtotal); ++generateur->a[t]) {
-				if(stop) {
-					generateur->save();
-					t = mt;
-					goto end;
-				}
-				//the inner loop on the lengths
-				for(int loop2 = generateur->loop[t]; loop2 <= mmm; ++loop2) {
-					if(stop) {
-						generateur->save();
-						t = mt;//this evades omp block
-						goto end;
-					}
-					char word[generateur->min+loop2];
-					generateur->gen_next(t, loop2, word);
-					
-					if(cracker->crack) {
-						if(cracker->hash_check(word)) {
-							stop = true;
-							progress->value(100.0f);
-						}						
-					}
-					else
-						printf("%s\n", word);
-					#pragma omp critical
-					generateur->Counter++;
-				}
+				else subtotal /= mt;
 			}
 		}
-		end:;
+		for(generateur->a[t] = generateur->A[t]; generateur->a[t] < (total - subtotal); ++generateur->a[t]) {
+			//s.lock();
+			if(stop) {
+				generateur->save();
+				goto end;
+			}
+			//s.unlock();
+			//the inner loop on the lengths
+			for(int loop2 = generateur->loop[t]; loop2 <= mmm; ++loop2) {
+				//s1.lock();
+				if(stop) {
+					generateur->save();
+					goto end;
+				}
+				//s1.unlock();
+				char word[generateur->min+loop2];
+				generateur->gen_next(t, loop2, word);
+				
+				if(cracker->crack) {
+					if(cracker->hash_check(word)) {
+						//s2.lock();
+						stop = true;
+						//s2.unlock();
+						progress->value(100.0f);
+					}						
+				}
+				else
+					printf("%s\n", word);
+				c.lock();
+				generateur->Counter++;
+				c.unlock();
+			}
+		}
 	}
-	Fl::remove_timeout(get_status);
-	//we could lack about 2 seconds of status/output
-	get_status(NULL);
-	output->redraw();
+	end:;
+}
 
+//joining inside the button callback locks the ui
+void generate_wrapper(Fl_Widget *widget) {
+	stop = false;
+	widget->deactivate();
+	Fl::add_timeout(3.0, get_status);
+	if(cracker->crack) {
+		std::thread th[mt];
+		for(int t=0; t<mt; t++)
+			th[t] = std::thread(generate, t);
+		for(int t=0; t<mt; t++)
+			th[t].join();
+	}
+	else generate(0);
 	widget->activate();
 	stop = true;
+
+	Fl::remove_timeout(get_status, 0);
+
+	//we would probably miss status/output
+	get_status(NULL);
+	output->redraw();
 
 	delete [] generateur->arrayofindex;
 	delete generateur->arrayofchars;
@@ -151,7 +163,6 @@ void generate(Fl_Widget * widget) {
 	delete generateur->L;
 	delete generateur->A;
 }
-
 void set_restore(Fl_Widget *widget, void *) {
 	Fl_Button *b = (Fl_Button *) widget;
 	if(b->value()) {
@@ -162,7 +173,7 @@ void set_restore(Fl_Widget *widget, void *) {
 	}
 }
 
-void gen(Fl_Widget *widget, void *) {
+void run_button(Fl_Widget *widget, void *) {
 	if(options->restore) {
 		if(generateur->restore())
 			return;		
@@ -170,10 +181,9 @@ void gen(Fl_Widget *widget, void *) {
 	else {
 		generateur->min = options->min;
 		generateur->max = options->max;
-
 		cracker->crack = options->crack;
-
 		if(cracker->crack) {
+			mt = std::thread::hardware_concurrency();
 			cracker->filename = new char[strlen(file->value())];
 			memset(cracker->filename, '\0', sizeof(cracker->filename));
 			strcpy(cracker->filename, file->value());
@@ -184,6 +194,7 @@ void gen(Fl_Widget *widget, void *) {
 			if(cracker->import_hashes())
 				return;//filename will be freed inside this function if failure occurs
 		}
+		else mt = 1;
 		generateur->length = strlen(options->set);
 		if(generateur->length % 2) {
 			fl_message("Tacking doesn't work with odd character set's length");
@@ -194,7 +205,6 @@ void gen(Fl_Widget *widget, void *) {
 		}
 		generateur->arrayofchars = new char[generateur->length];
 		strcpy(generateur->arrayofchars, options->set);
-		
 		generateur->split_work();
 	}
 	generateur->loop = new int [mt];
@@ -209,12 +219,10 @@ void gen(Fl_Widget *widget, void *) {
 	for(int c=0; c<=mmm; ++c)
 		Total += powi(generateur->length, c+generateur->min);
 
-	Fl::add_timeout(2.0, get_status);
-	stop = false;
-	std::thread th(generate, widget);
+	std::thread th(generate_wrapper, widget);
 	th.detach();
 }
-void save(Fl_Widget *widget, void *) {
+void halt_button(Fl_Widget *widget, void *) {
 	stop = true;
 }
 
@@ -249,7 +257,6 @@ int main(int argc, char *argv[]) {
 	int wwidth = Fl::w() / 2;
 	int wheight = Fl::h() / 2;
 	int arg;
-	omp_set_nested(1);
 
 	stop = true;
 	addnl = false;
@@ -293,8 +300,8 @@ int main(int argc, char *argv[]) {
 
 	Fl_Button *run = new Fl_Button(wwidth/32, wheight/4 + wheight/8, wwidth/2-wwidth/16, wheight/12, "Run");
 	Fl_Button *halt = new Fl_Button(wwidth/2+wwidth/32, wheight/4 + wheight/8, wwidth/2-wwidth/16, wheight/12, "Stop");
-	run->callback(gen);
-	halt->callback(save);
+	run->callback(run_button);
+	halt->callback(halt_button);
 
 	file = new Fl_File_Input(wwidth/32, wheight/2, wwidth-wwidth/16, wheight/12, "Hash file's path:");
 	file->align(FL_ALIGN_TOP);
