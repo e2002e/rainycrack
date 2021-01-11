@@ -73,9 +73,8 @@ void generate(Fl_Widget * widget) {
 	{
 		for(generateur->loop[t]=generateur->L[t]; generateur->loop[t] <= mmm; ++generateur->loop[t]) {
 			int mpl = generateur->min+generateur->loop[t];
-
-			uint_big total = powi(generateur->length, mpl); 
-			/*
+ 
+ 			uint_big total;
 			if(generateur->min == 1 && generateur->loop[t] == 0) {
 				if(t == 0)
 					total = generateur->length;
@@ -88,10 +87,10 @@ void generate(Fl_Widget * widget) {
 					total += powi(generateur->length, mpl) % mt;
 				}
 				else total /= mt;
-			}*/
+			}
 			uint_big subtotal = 0;
 			if(generateur->loop[t] > 0) {
-				if(generateur->loop[t] == 1) {
+				if(generateur->min == 1 && generateur->loop[t] == 1) {
 					if(t == 0)
 						subtotal = generateur->length;
 					else subtotal = 0;
