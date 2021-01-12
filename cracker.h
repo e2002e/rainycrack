@@ -6,9 +6,9 @@ class Cracker {
 	bool import_hashes();
 	char *filename;
 	bool hash_check(char *);
-
+	
 	private:
-	char **hashlist;
 	int H;
+	char **hashlist;
 	unsigned int **md5;
 };

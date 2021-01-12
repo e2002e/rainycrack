@@ -27,9 +27,7 @@ bool Cracker::import_hashes() {
 	fseek(fd, 0, SEEK_SET);
 
 	type = 0;
-	delete [] hashlist;
 	hashlist = new char *[H];
-	delete [] md5;
 	md5 = new unsigned int *[H];
 	for(int i=0; i<H; ++i) {
 		hashlist[i] = new char[32];
@@ -73,6 +71,7 @@ bool Cracker::hash_check(char *message) {
 				strcpy(&tmp[strlen(previous)+33+addnl], message);
 				addnl = true;
 				output->value(tmp);
+				output->position(strlen(tmp));
 				
 				//pot:TODO don't attack already found hashes, and display pot Just like jtr and hashcat.
 				FILE *found = fopen("rc.pot", "a");
@@ -91,8 +90,10 @@ bool Cracker::hash_check(char *message) {
 }
 
 Cracker::~Cracker() {
-	delete [] hashlist;
-	delete [] md5;
+	if(crack) {
+	 	delete [] hashlist;
+		delete [] md5;
+	}
 }
 
 

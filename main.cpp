@@ -25,6 +25,9 @@ bool stop;
 bool addnl;
 std::mutex c, p;
 int mt;
+int wwidth = Fl::w() / 2;
+int wheight = Fl::h() / 2;
+	
 
 class Ui_options {
 	public:
@@ -47,6 +50,7 @@ Fl_Button *rbutton;
 Fl_Button *pbutton;
 Fl_Button *cbutton;
 Fl_File_Input *file;
+Fl_Scroll *scroll;
 
 //Status
 Fl_Progress *progress;
@@ -254,8 +258,6 @@ void set_crack(Fl_Widget *button, void *) {
 }
 
 int main(int argc, char *argv[]) {
-	int wwidth = Fl::w() / 2;
-	int wheight = Fl::h() / 2;
 	int arg;
 
 	stop = true;
@@ -310,12 +312,10 @@ int main(int argc, char *argv[]) {
 	cbutton = new Fl_Button((wwidth/2+wwidth/32), wheight/2+wheight/8, wwidth/2-wwidth/16, wheight/12, "Hash attack");
 	cbutton->type(FL_TOGGLE_BUTTON);
 	cbutton->callback(set_crack);
-
-	Fl_Scroll scroll(wwidth/32, wheight/2+wheight/4-wheight/32, wwidth-wwidth/16, wheight/4 );
 	
-	output = new Fl_Multiline_Output(wwidth/32, wheight/2+wheight/4-wheight/32, wwidth-wwidth/16, wheight/4);
-	scroll.end();
-
+	output = new Fl_Multiline_Output(wwidth/32, wheight/2+wheight/4, wwidth-wwidth/16, wheight/4-wheight/32);
+	output->align(FL_ALIGN_BOTTOM);
+	
 	window->end();
 	window->show(argc, argv);
 	return Fl::run();
