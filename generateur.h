@@ -3,6 +3,7 @@
 typedef unsigned __int128 uint_big;
 class Generateur {
 	public:
+	~Generateur();
 	int ***arrayofindex;//state
 	void split_work();
 	int min, max;

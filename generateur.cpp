@@ -63,6 +63,16 @@ uint_big str2big(char *str) {
 	return num;
 }
 
+Generateur::~Generateur() {
+	delete [] arrayofindex;
+	delete arrayofchars;
+	delete L;
+	delete loop;
+	delete A;
+	delete a;
+	delete [] tacke;
+}
+
 bool Generateur::restore() {
 	FILE *fd = fopen("restore", "r");
 	if(fd == NULL) {

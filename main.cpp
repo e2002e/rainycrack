@@ -16,13 +16,14 @@
 #include <FL/Fl_Progress.H>
 #include <FL/Fl_Timer.H>
 #include <FL/Fl_Multiline_Output.H>
+#include <FL/Fl_Scroll.H>
 
 #include "generateur.h"
 #include "cracker.h"
 
 bool stop;
 bool addnl;
-std::mutex c, s, s1, s2;
+std::mutex c, p;
 int mt;
 
 class Ui_options {
@@ -117,10 +118,11 @@ void generate(int t) {
 				
 				if(cracker->crack) {
 					if(cracker->hash_check(word)) {
-						//s2.lock();
 						stop = true;
-						//s2.unlock();
+						p.lock();
 						progress->value(100.0f);
+						progress->redraw();
+						p.unlock();
 					}						
 				}
 				else
@@ -131,7 +133,8 @@ void generate(int t) {
 			}
 		}
 	}
-	end:;
+	end:
+	;
 }
 
 //joining inside the button callback locks the ui
@@ -147,21 +150,17 @@ void generate_wrapper(Fl_Widget *widget) {
 			th[t].join();
 	}
 	else generate(0);
+	
+	if(!stop)//when we force the progress to 100%, stop is set, so don't overwrite it.
+		get_status(NULL);
+	output->redraw();
+
+	Fl::remove_timeout(get_status, 0);
 	widget->activate();
 	stop = true;
 
-	Fl::remove_timeout(get_status, 0);
-
-	//we would probably miss status/output
-	get_status(NULL);
-	output->redraw();
-
-	delete [] generateur->arrayofindex;
-	delete generateur->arrayofchars;
-	delete generateur->loop;
-	delete generateur->a;
-	delete generateur->L;
-	delete generateur->A;
+	delete generateur;
+	delete cracker;
 }
 void set_restore(Fl_Widget *widget, void *) {
 	Fl_Button *b = (Fl_Button *) widget;
@@ -174,6 +173,9 @@ void set_restore(Fl_Widget *widget, void *) {
 }
 
 void run_button(Fl_Widget *widget, void *) {
+	generateur = new Generateur;
+	cracker = new Cracker;
+	
 	if(options->restore) {
 		if(generateur->restore())
 			return;		
@@ -181,6 +183,11 @@ void run_button(Fl_Widget *widget, void *) {
 	else {
 		generateur->min = options->min;
 		generateur->max = options->max;
+		generateur->length = strlen(options->set);
+		if(generateur->length % 2) {
+			fl_message("Tacking doesn't work with odd character set's length");
+			return;
+		}
 		cracker->crack = options->crack;
 		if(cracker->crack) {
 			mt = std::thread::hardware_concurrency();
@@ -195,14 +202,7 @@ void run_button(Fl_Widget *widget, void *) {
 				return;//filename will be freed inside this function if failure occurs
 		}
 		else mt = 1;
-		generateur->length = strlen(options->set);
-		if(generateur->length % 2) {
-			fl_message("Tacking doesn't work with odd character set's length");
-			if(cracker->crack) {
-				delete cracker;
-			}
-			return;
-		}
+		//from here there is no input error possible
 		generateur->arrayofchars = new char[generateur->length];
 		strcpy(generateur->arrayofchars, options->set);
 		generateur->split_work();
@@ -260,10 +260,7 @@ int main(int argc, char *argv[]) {
 
 	stop = true;
 	addnl = false;
-	generateur = new Generateur;
-
-	cracker = new Cracker;
-
+	
 	options = new Ui_options;
 	options->crack = false;
 	options->restore = false;
@@ -314,7 +311,10 @@ int main(int argc, char *argv[]) {
 	cbutton->type(FL_TOGGLE_BUTTON);
 	cbutton->callback(set_crack);
 
+	Fl_Scroll scroll(wwidth/32, wheight/2+wheight/4-wheight/32, wwidth-wwidth/16, wheight/4 );
+	
 	output = new Fl_Multiline_Output(wwidth/32, wheight/2+wheight/4-wheight/32, wwidth-wwidth/16, wheight/4);
+	scroll.end();
 
 	window->end();
 	window->show(argc, argv);
