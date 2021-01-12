@@ -20,6 +20,7 @@
 
 #include "generateur.h"
 #include "cracker.h"
+#include "pot.h"
 
 bool stop;
 bool addnl;
@@ -41,6 +42,7 @@ class Ui_options {
 
 Generateur *generateur;
 Cracker *cracker;
+Pot *pot;
 Ui_options *options;
 
 Fl_Spinner *spin0;
@@ -165,6 +167,7 @@ void generate_wrapper(Fl_Widget *widget) {
 
 	delete generateur;
 	delete cracker;
+	delete pot;
 }
 void set_restore(Fl_Widget *widget, void *) {
 	Fl_Button *b = (Fl_Button *) widget;
@@ -179,6 +182,7 @@ void set_restore(Fl_Widget *widget, void *) {
 void run_button(Fl_Widget *widget, void *) {
 	generateur = new Generateur;
 	cracker = new Cracker;
+	pot = new Pot;
 	
 	if(options->restore) {
 		if(generateur->restore())

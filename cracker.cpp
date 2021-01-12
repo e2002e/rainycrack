@@ -6,9 +6,11 @@
 #include <FL/Fl_Output.H>
 #include "cracker.h"
 #include "md5.h"
+#include "pot.h"
 
 extern bool addnl;
 extern Fl_Output *output;
+extern Pot *pot;
 
 bool Cracker::import_hashes() {
 	FILE *fd = fopen(filename, "r");
@@ -17,39 +19,115 @@ bool Cracker::import_hashes() {
 		delete filename;
 		return 1;
 	}
-	int filesize = 0;
 	H = 0;
 	do {
-		++filesize;
 		int c = getc(fd);
 		if(c == '\n') H++;
 	} while(!feof(fd));
 	fseek(fd, 0, SEEK_SET);
 
-	type = 0;
-	hashlist = new char *[H];
-	md5 = new unsigned int *[H];
+	type = 0;//TODO parse the type for sha1
+	
+	char **tmphashlist = new char *[H];
 	for(int i=0; i<H; ++i) {
-		hashlist[i] = new char[32];
-		fread(hashlist[i], 33, 1, fd);
-		md5[i] = new unsigned int[4];
-		for(int j=0; j < 4; j++) {
-			char tmp2[9], tmp3[9];
-			strncpy(tmp2, (char*)&hashlist[i][j*8], 8);
-			tmp2[8] = '\0';
-			for(int k=0; k<8; ++k) {
-				tmp3[k] = tmp2[7-k];
-			}
-			for(int l=0; l<8; l+=2) {
-				char c = tmp3[l];
-				tmp3[l] = tmp3[l+1];
-				tmp3[l+1] = c;
-			}
-			tmp3[8] = '\0';
-			md5[i][j] = strtoul((char*)tmp3, NULL, 16);
-		}
+		tmphashlist[i] = new char[32];
+		fread(tmphashlist[i], 32, 1, fd);
 	}
 	fclose(fd);
+
+	FILE *found = fopen("rc.pot", "r");
+	if(found == NULL) {
+		found = fopen("rc.pot", "a+");
+	}
+	int size = 0;
+	int h = 0;
+	do {
+		int c = getc(found);
+		++size;
+		if(c == '\n') h++;
+	} while(!feof(found));
+	fseek(found, 0, SEEK_SET);
+	char buff[size];
+	fread(buff, size, 1, found);
+	fclose(found);
+	int a = 0;
+
+	char buff2[size];
+
+	//We only do this to get the value a used to allocate arrays, and we'll repeat the procedure to fill these up.
+	for(int i=0; i<H; i++) {
+		bool add = true;
+		strcpy(buff2, buff);
+		for(int j=0; j<h; j++) {
+			char pothash[32];
+			if(j == 0) {
+				strcpy(pothash, strtok(buff2, ":"));
+				strtok(NULL, "\n");
+			}
+			else {
+				strcpy(pothash, strtok(NULL, ":"));
+				strtok(NULL, "\n");
+			}
+			if(strcmp(pothash, tmphashlist[i]) == 0) {
+				add = false;
+			}
+		}
+		if(add) {
+			a++;
+		}
+	}
+	printf("%d\n", a);
+	if(a == 0) {
+		fl_message("There is no reminding hash to crack in the list.");
+		delete filename;
+		delete [] tmphashlist;
+		return 1;	
+	}
+	hashlist = new char *[a];
+	md5 = new unsigned int *[a];
+	a = 0;
+	
+	for(int i=0; i<H; i++) {
+		bool add = true;
+		strcpy(buff2, buff);
+		for(int j=0; j<h; j++) {
+			char pothash[32];
+			if(j == 0) {
+				strcpy(pothash, strtok(buff2, ":"));
+				strtok(NULL, "\n");
+			}
+			else {
+				strcpy(pothash, strtok(NULL, ":"));
+				strtok(NULL, "\n");
+			}
+			if(strcmp(pothash, tmphashlist[i]) == 0) {
+				add = false;
+			}	
+		}
+		if(add) {
+			hashlist[a] = new char[32];
+			strncpy(hashlist[a], tmphashlist[i], 32);
+			md5[a] = new unsigned int[4];
+			for(int j=0; j < 4; j++) {
+				char tmp2[9], tmp3[9];
+				strncpy(tmp2, (char*)&hashlist[a][j*8], 8);
+				tmp2[8] = '\0';
+				for(int k=0; k<8; ++k) {
+					tmp3[k] = tmp2[7-k];
+				}
+				for(int k=0; k<8; k+=2) {
+					char c = tmp3[k];
+					tmp3[k] = tmp3[k+1];
+					tmp3[k+1] = c;
+				}
+				tmp3[8] = '\0';
+				md5[a][j] = strtoul((char*)tmp3, NULL, 16);
+			}
+			a++;
+		}
+	}
+	H = a;
+	delete [] tmphashlist;
 	return 0;
 }
 
@@ -72,14 +150,7 @@ bool Cracker::hash_check(char *message) {
 				addnl = true;
 				output->value(tmp);
 				output->position(strlen(tmp));
-				
-				//pot:TODO don't attack already found hashes, and display pot Just like jtr and hashcat.
-				FILE *found = fopen("rc.pot", "a");
-				fwrite((void *) hashlist[h], 32, 1, found);
-				fwrite((void *) ":", 1, 1, found);
-				fwrite((void *) message, strlen(message), 1, found);
-				fwrite((void *) "\n", 1, 1, found);
-				fclose(found);
+				pot->save(hashlist[h], message);
 				//delete
 				md5[h] = NULL;
 				delete md5[h];
