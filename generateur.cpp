@@ -205,5 +205,5 @@ void Generateur::gen_next(int t, int loop2, char *word) {
 		}
 	}
 	tacke[t][loop2]++;
-	word[mpl] = '\0';
+	word[mpl] = 0;
 }

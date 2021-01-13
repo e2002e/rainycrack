@@ -119,7 +119,7 @@ void generate(int t) {
 					goto end;
 				}
 				//s1.unlock();
-				char word[generateur->min+loop2];
+				char word[generateur->min+loop2+1];
 				generateur->gen_next(t, loop2, word);
 				
 				if(cracker->crack) {
@@ -289,7 +289,8 @@ int main(int argc, char *argv[]) {
 	spin1->callback(set_maxlength);
 
 	in = new Fl_Input(wwidth/32, wheight/16*2+wheight/32, wwidth-wwidth/16, wheight/8, "Set");
-	in->value("aeorisn1tl2md0cp3hbuk45g9687yfwjvzxq");//ASERBTMLNPOIDCHGKFJUWYVZQX
+	//in->value("aeorisn1tl2md0cp3hbuk45g9687yfwjvzxq");//ASERBTMLNPOIDCHGKFJUWYVZQX
+	in->value("1234567890");
 	in->align(FL_ALIGN_TOP);
 	in->callback(set_set);
 

@@ -30,8 +30,9 @@ bool Cracker::import_hashes() {
 	
 	char **tmphashlist = new char *[H];
 	for(int i=0; i<H; ++i) {
-		tmphashlist[i] = new char[32];
-		fread(tmphashlist[i], 32, 1, fd);
+		tmphashlist[i] = new char[33];
+		fread(tmphashlist[i], 33, 1, fd);
+		tmphashlist[i][32] = 0;
 	}
 	fclose(fd);
 
@@ -47,6 +48,7 @@ bool Cracker::import_hashes() {
 		if(c == '\n') h++;
 	} while(!feof(found));
 	fseek(found, 0, SEEK_SET);
+
 	char buff[size];
 	fread(buff, size, 1, found);
 	fclose(found);
@@ -59,7 +61,7 @@ bool Cracker::import_hashes() {
 		bool add = true;
 		strcpy(buff2, buff);
 		for(int j=0; j<h; j++) {
-			char pothash[32];
+			char pothash[33];
 			if(j == 0) {
 				strcpy(pothash, strtok(buff2, ":"));
 				strtok(NULL, "\n");
@@ -68,15 +70,13 @@ bool Cracker::import_hashes() {
 				strcpy(pothash, strtok(NULL, ":"));
 				strtok(NULL, "\n");
 			}
-			if(strcmp(pothash, tmphashlist[i]) == 0) {
+			if(strcmp(pothash, tmphashlist[i]) == 0)
 				add = false;
-			}
 		}
 		if(add) {
 			a++;
 		}
 	}
-	printf("%d\n", a);
 	if(a == 0) {
 		fl_message("There is no reminding hash to crack in the list.");
 		delete filename;
@@ -100,28 +100,28 @@ bool Cracker::import_hashes() {
 				strcpy(pothash, strtok(NULL, ":"));
 				strtok(NULL, "\n");
 			}
-			if(strcmp(pothash, tmphashlist[i]) == 0) {
+			if(strcmp(pothash, tmphashlist[i]) == 0)
 				add = false;
-			}	
 		}
-		if(add) {
+		if(add)
+		{
 			hashlist[a] = new char[32];
-			strncpy(hashlist[a], tmphashlist[i], 32);
+			strcpy(hashlist[a], tmphashlist[i]);
 			md5[a] = new unsigned int[4];
 			for(int j=0; j < 4; j++) {
 				char tmp2[9], tmp3[9];
-				strncpy(tmp2, (char*)&hashlist[a][j*8], 8);
-				tmp2[8] = '\0';
-				for(int k=0; k<8; ++k) {
+				strcpy(tmp2, &hashlist[a][j*8]);
+				tmp2[8] = 0;
+				for(int k=0; k<8; k++) {
 					tmp3[k] = tmp2[7-k];
 				}
+				tmp3[8] = 0;
 				for(int k=0; k<8; k+=2) {
 					char c = tmp3[k];
 					tmp3[k] = tmp3[k+1];
 					tmp3[k+1] = c;
 				}
-				tmp3[8] = '\0';
-				md5[a][j] = strtoul((char*)tmp3, NULL, 16);
+				md5[a][j] = strtol((char*)tmp3, NULL, 16);
 			}
 			a++;
 		}
@@ -133,10 +133,11 @@ bool Cracker::import_hashes() {
 
 bool Cracker::hash_check(char *message) {
 	unsigned int hash[4];
-	md5_hash((unsigned char*) message, strlen(message), hash);		
+	md5_hash((unsigned char*) message, strlen(message), hash);	
 	bool done = true;
 	for(int h=0; h<H; ++h) {
-		if(md5[h]) {
+		if(md5[h]) 
+		{
 			done = false;
 			if(memcmp(hash, md5[h], sizeof(hash)) == 0) {
 				//display related
@@ -147,10 +148,13 @@ bool Cracker::hash_check(char *message) {
 				strcpy(&tmp[strlen(previous)+addnl], hashlist[h]);
 				strcpy(&tmp[strlen(previous)+32+addnl], ":");
 				strcpy(&tmp[strlen(previous)+33+addnl], message);
+
 				addnl = true;
+				int pos = output->position();
 				output->value(tmp);
-				output->position(strlen(tmp));
+				output->position(pos);
 				pot->save(hashlist[h], message);
+
 				//delete
 				md5[h] = NULL;
 				delete md5[h];
