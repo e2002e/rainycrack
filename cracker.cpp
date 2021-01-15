@@ -167,7 +167,8 @@ bool Cracker::hash_check(char *message) {
 }
 
 Cracker::~Cracker() {
-	if(crack) {
+	if(crack) 
+	{
 	 	delete [] hashlist;
 		delete [] md5;
 	}

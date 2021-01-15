@@ -144,14 +144,12 @@ void generate(int t) {
 
 //joining inside the button callback locks the ui
 void generate_wrapper(Fl_Widget *widget) {
-	stop = false;
-	widget->deactivate();
-	Fl::add_timeout(2.0, get_status);
 	if(cracker->crack) {
-		for(int t=0; t<mt; t++) {
-			std::thread th(generate, t);
-			th.join();
-		}
+		std::thread th[mt];
+		for(int t=0; t<mt; t++)
+			th[t] = std::thread(generate, t);
+		for(int t=0; t<mt; t++)
+			th[t].join();
 	}
 	else generate(0);
 	
@@ -226,6 +224,10 @@ void run_button(Fl_Widget *widget, void *) {
 	Total = 0;
 	for(int c=0; c<=mmm; ++c)
 		Total += powi(generateur->length, c+generateur->min);
+	
+	stop = false;
+	widget->deactivate();
+	Fl::add_timeout(2.0, get_status);
 
 	std::thread th(generate_wrapper, widget);
 	th.detach();
