@@ -176,7 +176,7 @@ void Generateur::save() {
 	fclose(fd);
 }
 
-void Generateur::gen_next(int t, int loop2, char *word) {
+void Generateur::gen_tacking(int t, int loop2, char *word) {
 	short unsigned int mpl = Generateur::min+loop2;
 	for(int i=0; i<mpl; i++) {
 		if(tacke[t][loop2] % 2 || mpl < 4) {

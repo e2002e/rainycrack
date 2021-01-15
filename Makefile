@@ -3,9 +3,9 @@ CXX=g++
 rainycrack: main.o generateur.o cracker.o md5.o pot.o
 	$(CXX) main.o generateur.o cracker.o md5.o pot.o -o rainycrack -lfltk -lpthread
 main.o: main.cpp
-	$(CXX) -c main.cpp -o main.o
+	$(CXX) -c main.cpp -o main.o -g
 generateur.o: generateur.cpp generateur.h
-	$(CXX) -c generateur.cpp -o generateur.o
+	$(CXX) -c generateur.cpp -o generateur.o -g
 md5.o: md5.cpp md5.h
 	$(CXX) -c md5.cpp -o md5.o
 cracker.o: cracker.cpp cracker.h

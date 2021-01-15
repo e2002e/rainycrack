@@ -52,7 +52,6 @@ Fl_Button *rbutton;
 Fl_Button *pbutton;
 Fl_Button *cbutton;
 Fl_File_Input *file;
-Fl_Scroll *scroll;
 
 //Status
 Fl_Progress *progress;
@@ -63,7 +62,7 @@ extern uint_big powi(uint32_t b, uint32_t p);
 
 void get_status(void *) {
 	progress->value((float) generateur->Counter /  (float) Total * 100.0f);
-	Fl::repeat_timeout(3.0, get_status);
+	Fl::repeat_timeout(2.0, get_status);
 }
 
 void generate(int t) {	
@@ -104,6 +103,7 @@ void generate(int t) {
 				else subtotal /= mt;
 			}
 		}
+		char word[generateur->max];
 		for(generateur->a[t] = generateur->A[t]; generateur->a[t] < (total - subtotal); ++generateur->a[t]) {
 			//s.lock();
 			if(stop) {
@@ -118,16 +118,15 @@ void generate(int t) {
 					generateur->save();
 					goto end;
 				}
+				memset(word, 0, sizeof(word));
 				//s1.unlock();
-				char word[generateur->min+loop2+1];
-				generateur->gen_next(t, loop2, word);
+				generateur->gen_tacking(t, loop2, word);
 				
 				if(cracker->crack) {
 					if(cracker->hash_check(word)) {
 						stop = true;
 						p.lock();
 						progress->value(100.0f);
-						progress->redraw();
 						p.unlock();
 					}						
 				}
@@ -147,19 +146,19 @@ void generate(int t) {
 void generate_wrapper(Fl_Widget *widget) {
 	stop = false;
 	widget->deactivate();
-	Fl::add_timeout(3.0, get_status);
+	Fl::add_timeout(2.0, get_status);
 	if(cracker->crack) {
-		std::thread th[mt];
-		for(int t=0; t<mt; t++)
-			th[t] = std::thread(generate, t);
-		for(int t=0; t<mt; t++)
-			th[t].join();
+		for(int t=0; t<mt; t++) {
+			std::thread th(generate, t);
+			th.join();
+		}
 	}
 	else generate(0);
 	
 	if(!stop)//when we force the progress to 100%, stop is set, so don't overwrite it.
 		get_status(NULL);
 	output->redraw();
+	progress->redraw();
 
 	Fl::remove_timeout(get_status, 0);
 	widget->activate();
@@ -192,6 +191,7 @@ void run_button(Fl_Widget *widget, void *) {
 		generateur->min = options->min;
 		generateur->max = options->max;
 		generateur->length = strlen(options->set);
+		
 		if(generateur->length % 2) {
 			fl_message("Tacking doesn't work with odd character set's length");
 			return;

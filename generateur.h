@@ -16,7 +16,8 @@ class Generateur {
 	uint_big *a, *A;
 	uint_big Counter;
 
-	void gen_next(int, int, char *);
+	void gen_tacking (int, int, char *);
+	void gen_skyzo(int, int, char *);
 
 	uint_big **tacke;	//bruteforcing on two sides is tacking
 	//save/restore

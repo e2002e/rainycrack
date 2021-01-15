@@ -3,13 +3,13 @@
 #include <cstdlib>
 #include <omp.h>
 #include <FL/fl_ask.H>
-#include <FL/Fl_Output.H>
+#include <FL/Fl_Multiline_Output.H>
 #include "cracker.h"
 #include "md5.h"
 #include "pot.h"
 
 extern bool addnl;
-extern Fl_Output *output;
+extern Fl_Multiline_Output *output;
 extern Pot *pot;
 
 bool Cracker::import_hashes() {
@@ -49,12 +49,12 @@ bool Cracker::import_hashes() {
 	} while(!feof(found));
 	fseek(found, 0, SEEK_SET);
 
-	char buff[size];
+	char *buff = new char[size];
 	fread(buff, size, 1, found);
 	fclose(found);
 	int a = 0;
 
-	char buff2[size];
+	char *buff2 = new char[size];
 
 	//We only do this to get the value a used to allocate arrays, and we'll repeat the procedure to fill these up.
 	for(int i=0; i<H; i++) {
@@ -148,7 +148,7 @@ bool Cracker::hash_check(char *message) {
 				strcpy(&tmp[strlen(previous)+addnl], hashlist[h]);
 				strcpy(&tmp[strlen(previous)+32+addnl], ":");
 				strcpy(&tmp[strlen(previous)+33+addnl], message);
-
+				//once one line has been written we always add a newline.
 				addnl = true;
 				int pos = output->position();
 				output->value(tmp);
