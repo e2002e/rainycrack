@@ -207,7 +207,7 @@ void run_button(Fl_Widget *widget, void *) {
 				return;
 			}
 			if(cracker->import_hashes())
-				return;//filename will be freed inside this function if failure occurs
+				return;//memory will be freed inside this function if failure occurs
 		}
 		else mt = 1;
 		//from here there is no input error possible

@@ -81,6 +81,8 @@ bool Cracker::import_hashes() {
 		fl_message("There is no reminding hash to crack in the list.");
 		delete filename;
 		delete [] tmphashlist;
+		delete buff;
+		delete buff2;
 		return 1;	
 	}
 	hashlist = new char *[a];

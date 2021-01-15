@@ -1,6 +1,6 @@
 #include <cstdint>
 
-typedef unsigned __int128 uint_big;
+typedef unsigned long long uint_big;
 class Generateur {
 	public:
 	~Generateur();

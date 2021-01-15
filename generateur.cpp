@@ -102,10 +102,13 @@ bool Generateur::restore() {
 	char *tmpstr = strtok(NULL, ":");
 	Generateur::Counter = str2big(tmpstr);
 
+	mt = strtoul(strtok(NULL, ":"), NULL, 10);
+
 	arrayofindex = new int **[mt];
 	tacke = new uint_big *[mt];
 	L = new int [mt];
 	A = new uint_big [mt];
+	
 	for(int t=0; t<mt; t++) {
 		Generateur::arrayofindex[t] = new int *[mmm+1];	
 		tacke[t] = new uint_big [mmm+1];
@@ -120,11 +123,14 @@ bool Generateur::restore() {
 	 	   		Generateur::arrayofindex[t][a][b] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
 		}
 	}
-	cracker->crack = (bool) strtoul(strtok(NULL, ":"), NULL, 10);
+	cracker->crack = (int) strtoul(strtok(NULL, ":"), NULL, 10);
 	if(cracker->crack) {
 		char *tmpfilename = strtok(NULL, ":");
 		cracker->filename = new char[strlen(tmpfilename)];
 		strcpy(cracker->filename, tmpfilename);
+		//printf(cracker->filename);
+		if(cracker->import_hashes())
+			return 1;
 	}
 	return 0;
 }
@@ -161,6 +167,7 @@ void Generateur::save() {
 	fprintf(fd, "%d:", Generateur::max);
 	fprintf(fd, "%s:", Generateur::arrayofchars);
 	fprintf(fd, "%s:", big2str(Generateur::Counter));
+	fprintf(fd, "%d:", mt);
 	for(int t=0; t<mt; t++) {
 		fprintf(fd, "%d:", Generateur::loop[t]);
 		fprintf(fd, "%s:", big2str(Generateur::a[t]));
