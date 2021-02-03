@@ -8,7 +8,8 @@ class Generateur {
 	void split_work();
 	int min, max;
 	int *loop, *L;
-
+	uint_big **rain;
+	
 	char *arrayofchars;	//the character set
 	int length;			//it's length
 
@@ -17,7 +18,7 @@ class Generateur {
 	uint_big Counter;
 
 	void gen_tacking (int, int, char *);
-	void gen_skyzo(int, int, char *);
+	void gen_rain(int, int, char *);
 
 	uint_big **tacke;	//bruteforcing on two sides is tacking
 	//save/restore

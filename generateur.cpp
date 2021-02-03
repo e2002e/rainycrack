@@ -8,6 +8,7 @@
 
 extern Cracker *cracker;
 extern int mt;
+extern bool method;
 
 //this function is from john/subsets.c
 uint_big powi(uint32_t b, uint32_t p)
@@ -124,6 +125,7 @@ bool Generateur::restore() {
 		}
 	}
 	cracker->crack = (int) strtoul(strtok(NULL, ":"), NULL, 10);
+	method = (bool) strtoul(strtok(NULL, ":"), NULL, 10);
 	if(cracker->crack) {
 		char *tmpfilename = strtok(NULL, ":");
 		cracker->filename = new char[strlen(tmpfilename)];
@@ -141,17 +143,21 @@ void Generateur::split_work() {
 	A = new uint_big[mt];
 	arrayofindex = new int **[mt];
 	tacke = new uint_big *[mt];
+	rain = new uint_big *[mt];
 	for(int t=0; t<mt; t++){
 		L[t] = 0;
 		A[t] = 0;
 		tacke[t] = new uint_big[mmm+1];
+		rain[t] = new uint_big[mmm+1];
 		arrayofindex[t] = new int *[mmm+1];
 		for(int a=0; a<=mmm; a++) {
 			tacke[t][a] = 0;
+			rain[t][a] = 0;
 			arrayofindex[t][a] = new int[min+a];
 			uint_big load = powi(length, min+a) * t / mt; 
-			if((min+a)%2 == 0 && min+a > 3)
-				load -= load / 2;
+			if(method == 0)
+				if((min+a)%2 == 0 && min+a > 3)
+					load -= load / 2;
 			for(int b=0; b<min+a; b++) {
 				arrayofindex[t][a][b] = load % length;
 				load /= length;
@@ -178,9 +184,26 @@ void Generateur::save() {
 		}
 	}
 	fprintf(fd, "%d:", cracker->crack);
+	fprintf(fd, "%d:", method);
 	if(cracker->crack)
 		fprintf(fd, "%s:", cracker->filename);
 	fclose(fd);
+}
+
+void Generateur::gen_rain(int t, int loop2, char *word) {
+	short unsigned int mpl = Generateur::min+loop2;
+	uint_big I = rain[t][loop2]++;
+	word[0] = arrayofchars[arrayofindex[t][loop2][0]];
+	for(int i=1; i<mpl; i++) {
+		word[i] = arrayofchars[(arrayofindex[t][loop2][i]+I)%length];
+		I += I/length;
+	}
+	word[mpl] = 0;
+	int pos = 0;
+	while(pos < mpl && ++arrayofindex[t][loop2][pos] >= length) {
+		arrayofindex[t][loop2][pos] = 0;
+		pos++;
+	}
 }
 
 void Generateur::gen_tacking(int t, int loop2, char *word) {
@@ -212,5 +235,4 @@ void Generateur::gen_tacking(int t, int loop2, char *word) {
 		}
 	}
 	tacke[t][loop2]++;
-	word[mpl] = 0;
 }

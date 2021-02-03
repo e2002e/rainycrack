@@ -12,6 +12,7 @@
 #include <FL/Fl_File_Input.H>
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Menu_Button.H>
 #include <FL/Fl_Spinner.H>
 #include <FL/Fl_Progress.H>
 #include <FL/Fl_Timer.H>
@@ -52,11 +53,13 @@ Fl_Button *rbutton;
 Fl_Button *pbutton;
 Fl_Button *cbutton;
 Fl_File_Input *file;
+Fl_Menu_Button *atype;
 
 //Status
 Fl_Progress *progress;
 Fl_Multiline_Output *output;
 uint_big Total;
+bool method = 0;
 
 extern uint_big powi(uint32_t b, uint32_t p);
 
@@ -103,7 +106,6 @@ void generate(int t) {
 				else subtotal /= mt;
 			}
 		}
-		char word[generateur->max];
 		for(generateur->a[t] = generateur->A[t]; generateur->a[t] < (total - subtotal); ++generateur->a[t]) {
 			//s.lock();
 			if(stop) {
@@ -118,10 +120,14 @@ void generate(int t) {
 					generateur->save();
 					goto end;
 				}
+				static char word[32];
 				memset(word, 0, sizeof(word));
 				//s1.unlock();
-				generateur->gen_tacking(t, loop2, word);
-				
+				if(method == 0)
+					generateur->gen_tacking(t, loop2, word);
+				else
+					generateur->gen_rain(t, loop2, word);
+
 				if(cracker->crack) {
 					if(cracker->hash_check(word)) {
 						stop = true;
@@ -132,6 +138,7 @@ void generate(int t) {
 				}
 				else
 					printf("%s\n", word);
+
 				c.lock();
 				generateur->Counter++;
 				c.unlock();
@@ -190,10 +197,11 @@ void run_button(Fl_Widget *widget, void *) {
 		generateur->max = options->max;
 		generateur->length = strlen(options->set);
 		
-		if(generateur->length % 2) {
-			fl_message("Tacking doesn't work with odd character set's length");
-			return;
-		}
+		if(method == 0)
+			if(generateur->length % 2) {
+				fl_message("Tacking doesn't work with odd character set's length");
+				return;
+			}
 		cracker->crack = options->crack;
 		if(cracker->crack) {
 			mt = std::thread::hardware_concurrency();
@@ -263,12 +271,18 @@ void set_crack(Fl_Widget *button, void *) {
 	}
 }
 
+void set_method(Fl_Widget *w, void *i) {
+	Fl_Menu_Button *menu = (Fl_Menu_Button *)w;
+	method = menu->value();
+}
+
+const Fl_Menu_Item algo[] = {{"Tacking", 0, set_method}, {"Rain", 0, set_method}, {0}};
+
 int main(int argc, char *argv[]) {
 	int arg;
-
 	stop = true;
 	addnl = false;
-	
+
 	options = new Ui_options;
 	options->crack = false;
 	options->restore = false;
@@ -312,17 +326,21 @@ int main(int argc, char *argv[]) {
 	file = new Fl_File_Input(wwidth/32, wheight/2, wwidth-wwidth/16, wheight/12, "Hash file's path:");
 	file->align(FL_ALIGN_TOP);
 
-	rbutton = new Fl_Button(wwidth/32, wheight/2+wheight/8, wwidth/2-wwidth/16, wheight/12, "Restore");
+	rbutton = new Fl_Button(wwidth/32, wheight/2+wheight/8, wwidth/3-wwidth/32*3, wheight/12, "Restore");
 	rbutton->type(FL_TOGGLE_BUTTON);
 	rbutton->callback(set_restore);
 
-	cbutton = new Fl_Button((wwidth/2+wwidth/32), wheight/2+wheight/8, wwidth/2-wwidth/16, wheight/12, "Hash attack");
+	atype = new Fl_Menu_Button(wwidth/3+wwidth/32+wwidth/64, wheight/2+wheight/8, wwidth/3-wwidth/32*3, wheight/12, "Algorithm");
+	atype->menu(algo);
+
+	cbutton = new Fl_Button((wwidth/3*2+wwidth/16), wheight/2+wheight/8, wwidth/3-wwidth/32*3, wheight/12, "Hash attack");
 	cbutton->type(FL_TOGGLE_BUTTON);
+
 	cbutton->callback(set_crack);
-	
+
 	output = new Fl_Multiline_Output(wwidth/32, wheight/2+wheight/4, wwidth-wwidth/16, wheight/4-wheight/32);
 	output->align(FL_ALIGN_BOTTOM);
-	
+
 	window->end();
 	window->show(argc, argv);
 	return Fl::run();
