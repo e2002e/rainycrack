@@ -279,10 +279,6 @@ void set_method(Fl_Widget *w, void *i) {
 const Fl_Menu_Item algo[] = {{"Tacking", 0, set_method}, {"Rain", 0, set_method}, {0}};
 
 int main(int argc, char *argv[]) {
-	int arg;
-	stop = true;
-	addnl = false;
-
 	options = new Ui_options;
 	options->crack = false;
 	options->restore = false;
