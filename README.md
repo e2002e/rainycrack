@@ -5,11 +5,7 @@ Treats all the lengths together.
 Tacking:  
 -the bruteforce spans from the two sides, doubling current moving characters.  
 -the current moving characters slide along the word.  
--the symbols picked from the set rotate.
-
-The combination of these three features make it possible to break entropy, but is limited.  
-I recommend not using it (at least on old cpus) with a set that exeeds lowercase in size, and words length above 12-14.  
-Only works with even length character sets!  
+-the symbols picked from the se 
 
 Rain:  
 This is total mangling, you better use this one. Will find less password that markov based algorithm but can crack insane ones.  
