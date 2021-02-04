@@ -24,7 +24,6 @@
 #include "pot.h"
 
 bool stop;
-bool addnl;
 std::mutex c, p;
 int mt;
 int wwidth = Fl::w() / 2;
@@ -120,7 +119,7 @@ void generate(int t) {
 					generateur->save();
 					goto end;
 				}
-				static char word[32];
+				char word[32];
 				memset(word, 0, sizeof(word));
 				//s1.unlock();
 				if(method == 0)
@@ -151,7 +150,8 @@ void generate(int t) {
 
 //joining inside the button callback locks the ui
 void generate_wrapper(Fl_Widget *widget) {
-	if(cracker->crack) {
+	if(cracker->crack)
+	{
 		std::thread th[mt];
 		for(int t=0; t<mt; t++)
 			th[t] = std::thread(generate, t);
@@ -301,8 +301,8 @@ int main(int argc, char *argv[]) {
 	spin1->callback(set_maxlength);
 
 	in = new Fl_Input(wwidth/32, wheight/16*2+wheight/32, wwidth-wwidth/16, wheight/8, "Set");
-	//in->value("aeorisn1tl2md0cp3hbuk45g9687yfwjvzxq");//ASERBTMLNPOIDCHGKFJUWYVZQX
-	in->value("1234567890");
+	in->value("aeorisn1tl2md0cp3hbuk45g9687yfwjvzxq");//ASERBTMLNPOIDCHGKFJUWYVZQX
+	//in->value("1234567890");
 	in->align(FL_ALIGN_TOP);
 	in->callback(set_set);
 

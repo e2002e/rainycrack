@@ -11,6 +11,7 @@
 extern bool addnl;
 extern Fl_Multiline_Output *output;
 extern Pot *pot;
+bool addnl;
 
 bool Cracker::import_hashes() {
 	FILE *fd = fopen(filename, "r");
@@ -105,8 +106,7 @@ bool Cracker::import_hashes() {
 			if(strcmp(pothash, tmphashlist[i]) == 0)
 				add = false;
 		}
-		if(add)
-		{
+		if(add) {
 			hashlist[a] = new char[32];
 			strcpy(hashlist[a], tmphashlist[i]);
 			md5[a] = new unsigned int[4];
@@ -134,17 +134,16 @@ bool Cracker::import_hashes() {
 }
 
 bool Cracker::hash_check(char *message) {
-	unsigned int hash[4];
+	uint32_t hash[4];
 	md5_hash((unsigned char*) message, strlen(message), hash);	
 	bool done = true;
 	for(int h=0; h<H; ++h) {
-		if(md5[h]) 
-		{
+		if(md5[h]) {
 			done = false;
 			if(memcmp(hash, md5[h], sizeof(hash)) == 0) {
 				//display related
 				const char *previous = output->value();
-				char tmp[strlen(previous)+strlen(message)+32];
+				char tmp[strlen(previous)+strlen(message)+33];
 				strcpy(tmp, previous);
 				strcpy(&tmp[strlen(previous)], "\n");
 				strcpy(&tmp[strlen(previous)+addnl], hashlist[h]);
@@ -156,10 +155,9 @@ bool Cracker::hash_check(char *message) {
 				output->value(tmp);
 				output->position(pos);
 				pot->save(hashlist[h], message);
-
 				//delete
 				md5[h] = NULL;
-				delete md5[h];
+				//delete md5[h];
 			}
 		}
 	}
