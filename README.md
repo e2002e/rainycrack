@@ -4,8 +4,9 @@ Treats all the lengths together.
 
 Tacking:  
 -the bruteforce spans from the two sides, doubling current moving characters.  
+TODO:
 -the current moving characters slide along the word.  
--the symbols picked from the se 
+-the symbols picked from the set rotate.   
 
 Rain:  
 This is total mangling, you better use this one. Will find less password that markov based algorithm but can crack insane ones.  
