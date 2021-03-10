@@ -67,45 +67,22 @@ void get_status(void *) {
 	Fl::repeat_timeout(2.0, get_status);
 }
 
-void generate(int t) {	
+void generate() {	
 	/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
 	the bound with subtotal*/
 	int mmm = generateur->max-generateur->min;
-	for(generateur->loop[t]=generateur->L[t]; generateur->loop[t] <= mmm; ++generateur->loop[t]) {
-		int mpl = generateur->min+generateur->loop[t];
+	for(generateur->loop=generateur->L; generateur->loop <= mmm; ++generateur->loop) {
+		int mpl = generateur->min+generateur->loop;
 
 		uint_big total;
 
-		if(generateur->min == 1 && generateur->loop[t] == 0) {
-			if(t == 0)
-				total = generateur->length;
-			else total = 0;
-		}
-		else {
-			total = powi(generateur->length, mpl);
-			if(t == 0) {
-				total /= mt;
-				total += powi(generateur->length, mpl) % mt;
-			}
-			else total /= mt;
-		}
+		total = powi(generateur->length, mpl);
+		
 		uint_big subtotal = 0;
-		if(generateur->loop[t] > 0) {
-			if(generateur->min == 1 && generateur->loop[t] == 1) {
-				if(t == 0)
-					subtotal = generateur->length;
-				else subtotal = 0;
-			}
-			else {
-				subtotal = powi(generateur->length, mpl-1);
-				if(t == 0) {
-					subtotal /= mt;
-					subtotal += powi(generateur->length, mpl-1) % mt;
-				}
-				else subtotal /= mt;
-			}
-		}
-		for(generateur->a[t] = generateur->A[t]; generateur->a[t] < (total - subtotal); ++generateur->a[t]) {
+		if(generateur->loop > 0)
+			subtotal = powi(generateur->length, mpl-1);
+		
+		for(generateur->a = generateur->A; generateur->a < (total - subtotal); ++generateur->a) {
 			//s.lock();
 			if(stop) {
 				generateur->save();
@@ -113,7 +90,7 @@ void generate(int t) {
 			}
 			//s.unlock();
 			//the inner loop on the lengths
-			for(int loop2 = generateur->loop[t]; loop2 <= mmm; ++loop2) {
+			for(int loop2 = generateur->loop; loop2 <= mmm; ++loop2) {
 				//s1.lock();
 				if(stop) {
 					generateur->save();
@@ -123,24 +100,24 @@ void generate(int t) {
 				memset(word, 0, sizeof(word));
 				//s1.unlock();
 				if(method == 0)
-					generateur->gen_tacking(t, loop2, word);
+					generateur->gen_tacking(loop2, word);
 				else
-					generateur->gen_rain(t, loop2, word);
+					generateur->gen_rain(loop2, word);
 
 				if(cracker->crack) {
 					if(cracker->hash_check(word)) {
 						stop = true;
-						p.lock();
+						//p.lock();
 						progress->value(100.0f);
-						p.unlock();
+						//p.unlock();
 					}						
 				}
 				else
 					printf("%s\n", word);
 
-				c.lock();
+				//c.lock();
 				generateur->Counter++;
-				c.unlock();
+				//c.unlock();
 			}
 		}
 	}
@@ -150,16 +127,7 @@ void generate(int t) {
 
 //joining inside the button callback locks the ui
 void generate_wrapper(Fl_Widget *widget) {
-	if(cracker->crack)
-	{
-		std::thread th[mt];
-		for(int t=0; t<mt; t++)
-			th[t] = std::thread(generate, t);
-		for(int t=0; t<mt; t++)
-			th[t].join();
-	}
-	else generate(0);
-	
+	generate();
 	if(!stop)//when we force the progress to 100%, stop is set, so don't overwrite it.
 		get_status(NULL);
 	output->redraw();
@@ -204,7 +172,6 @@ void run_button(Fl_Widget *widget, void *) {
 			}
 		cracker->crack = options->crack;
 		if(cracker->crack) {
-			mt = std::thread::hardware_concurrency();
 			cracker->filename = new char[strlen(file->value())];
 			memset(cracker->filename, '\0', sizeof(cracker->filename));
 			strcpy(cracker->filename, file->value());
@@ -215,20 +182,15 @@ void run_button(Fl_Widget *widget, void *) {
 			if(cracker->import_hashes())
 				return;//memory will be freed inside this function if failure occurs
 		}
-		else mt = 1;
 		//from here there is no input error possible
 		generateur->arrayofchars = new char[generateur->length];
 		strcpy(generateur->arrayofchars, options->set);
 		generateur->split_work();
 	}
-	generateur->loop = new int [mt];
-	generateur->a = new uint_big [mt];
 	//not setting these will write wrong values in the restore file if no multithreading is used.
 	int mmm = generateur->max-generateur->min;
-	for(int t=0; t<mt; t++) {
-		generateur->loop[t] = 0;
-		generateur->a[t] = 0;
-	}
+	generateur->loop = 0;
+	generateur->a = 0;
 	Total = 0;
 	for(int c=0; c<=mmm; ++c)
 		Total += powi(generateur->length, c+generateur->min);

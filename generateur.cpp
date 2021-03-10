@@ -67,11 +67,7 @@ uint_big str2big(char *str) {
 Generateur::~Generateur() {
 	delete [] arrayofindex;
 	delete arrayofchars;
-	delete L;
-	delete loop;
-	delete A;
-	delete a;
-	delete [] tacke;
+	delete tacke;
 }
 
 bool Generateur::restore() {
@@ -102,27 +98,18 @@ bool Generateur::restore() {
 
 	char *tmpstr = strtok(NULL, ":");
 	Generateur::Counter = str2big(tmpstr);
-
-	mt = strtoul(strtok(NULL, ":"), NULL, 10);
-
-	arrayofindex = new int **[mt];
-	tacke = new uint_big *[mt];
-	L = new int [mt];
-	A = new uint_big [mt];
 	
-	for(int t=0; t<mt; t++) {
-		Generateur::arrayofindex[t] = new int *[mmm+1];	
-		tacke[t] = new uint_big [mmm+1];
-		Generateur::L[t] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
-		char *tmpstr2 = strtok(NULL, ":");
-		Generateur::A[t] = str2big(tmpstr2);
-		for(int a=0; a<=mmm; ++a) {
-			Generateur::arrayofindex[t][a] = new int[Generateur::min+a];
-		 	char *tmpstr3 = strtok(NULL, ":");
-		 	tacke[t][a] = str2big(tmpstr3);
-		 	for(int b=0; b<Generateur::min+a; ++b)
-	 	   		Generateur::arrayofindex[t][a][b] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
-		}
+	Generateur::arrayofindex = new int *[mmm+1];	
+	tacke = new uint_big [mmm+1];
+	Generateur::L = (int) strtoul(strtok(NULL, ":"), NULL, 10);
+	char *tmpstr2 = strtok(NULL, ":");
+	Generateur::A = str2big(tmpstr2);
+	for(int x=0; x<=mmm; ++x) {
+		Generateur::arrayofindex[x] = new int[Generateur::min+x];
+	 	char *tmpstr3 = strtok(NULL, ":");
+	 	tacke[a] = str2big(tmpstr3);
+	 	for(int y=0; y<Generateur::min+x; ++y)
+ 	   		Generateur::arrayofindex[x][y] = (int) strtoul(strtok(NULL, ":"), NULL, 10);
 	}
 	cracker->crack = (int) strtoul(strtok(NULL, ":"), NULL, 10);
 	method = (bool) strtoul(strtok(NULL, ":"), NULL, 10);
@@ -139,30 +126,15 @@ bool Generateur::restore() {
 
 void Generateur::split_work() {
 	int mmm = max-min;
-	L = new int[mt];
-	A = new uint_big[mt];
-	arrayofindex = new int **[mt];
-	tacke = new uint_big *[mt];
-	rain = new uint_big *[mt];
-	for(int t=0; t<mt; t++){
-		L[t] = 0;
-		A[t] = 0;
-		tacke[t] = new uint_big[mmm+1];
-		rain[t] = new uint_big[mmm+1];
-		arrayofindex[t] = new int *[mmm+1];
-		for(int a=0; a<=mmm; a++) {
-			tacke[t][a] = 0;
-			rain[t][a] = 0;
-			arrayofindex[t][a] = new int[min+a];
-			uint_big load = powi(length, min+a) * t / mt; 
-			if(method == 0)
-				if((min+a)%2 == 0 && min+a > 3)
-					load -= load / 2;
-			for(int b=0; b<min+a; b++) {
-				arrayofindex[t][a][b] = load % length;
-				load /= length;
-			}
-		}
+	L = 0;
+	A = 0;
+	tacke = new uint_big[mmm+1];
+	arrayofindex = new int *[mmm+1];
+	for(int x=0; x<=mmm; x++) {
+		tacke[x] = 0;
+		arrayofindex[x] = new int[min+x];
+	    for(int y=0; y<min+x; ++y)
+	        arrayofindex[x][y] = 0;
 	}
 	Counter = 0;
 }
@@ -173,15 +145,13 @@ void Generateur::save() {
 	fprintf(fd, "%d:", Generateur::max);
 	fprintf(fd, "%s:", Generateur::arrayofchars);
 	fprintf(fd, "%s:", big2str(Generateur::Counter));
-	fprintf(fd, "%d:", mt);
-	for(int t=0; t<mt; t++) {
-		fprintf(fd, "%d:", Generateur::loop[t]);
-		fprintf(fd, "%s:", big2str(Generateur::a[t]));
-		for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
-			fprintf(fd, "%s:", big2str(Generateur::tacke[t][a]));	
-			for(int b=0; b < Generateur::min+a; ++b)
-				fprintf(fd, "%d:", Generateur::arrayofindex[t][a][b]); 
-		}
+	
+	fprintf(fd, "%d:", Generateur::loop);
+	fprintf(fd, "%s:", big2str(Generateur::a));
+	for(int a=0; a<=Generateur::max-Generateur::min; ++a) {
+		fprintf(fd, "%s:", big2str(Generateur::tacke[a]));	
+		for(int b=0; b < Generateur::min+a; ++b)
+			fprintf(fd, "%d:", Generateur::arrayofindex[a][b]); 
 	}
 	fprintf(fd, "%d:", cracker->crack);
 	fprintf(fd, "%d:", method);
@@ -190,36 +160,34 @@ void Generateur::save() {
 	fclose(fd);
 }
 
-void Generateur::gen_rain(int t, int loop2, char *word) {
+void Generateur::gen_rain(int loop2, char *word) {
 	short unsigned int mpl = Generateur::min+loop2;
-	uint_big I = rain[t][loop2]++;
-	word[0] = arrayofchars[arrayofindex[t][loop2][0]];
-	for(int i=1; i<mpl; i++) {
-		word[i] = arrayofchars[(arrayofindex[t][loop2][i]+I)%length];
-		I += I/length;
-	}
+	for(int i=0; i<mpl; i++)
+		word[i] = arrayofchars[arrayofindex[loop2][i]];
 	word[mpl] = 0;
-	int pos = 0;
-	while(pos < mpl && ++arrayofindex[t][loop2][pos] >= length) {
-		arrayofindex[t][loop2][pos] = 0;
-		pos++;
+	
+	for(int x=0; x < mpl; ++x) {
+		if(++arrayofindex[loop2][x] >= length) {
+		    arrayofindex[loop2][x] = 0;
+		    break;
+		}
 	}
 }
 
-void Generateur::gen_tacking(int t, int loop2, char *word) {
+void Generateur::gen_tacking(int loop2, char *word) {
 	short unsigned int mpl = Generateur::min+loop2;
 	for(int i=0; i<mpl; i++) {
-		if(tacke[t][loop2] % 2 || mpl < 4) {
-				word[i] = arrayofchars[arrayofindex[t][loop2][i]];
+		if(tacke[loop2] % 2 || mpl < 4) {
+				word[i] = arrayofchars[arrayofindex[loop2][i]];
 		}
 		else {
-				word[i] = arrayofchars[arrayofindex[t][loop2][mpl-i-1]];	
+				word[i] = arrayofchars[arrayofindex[loop2][mpl-i-1]];	
 		}
 	}
-	if(tacke[t][loop2] % 2|| mpl < 4) {
+	if(tacke[loop2] % 2|| mpl < 4) {
 		int pos = 0;
-		while(pos < mpl && ++arrayofindex[t][loop2][pos] >= length) {
-			arrayofindex[t][loop2][pos] = 0;
+		while(pos < mpl && ++arrayofindex[loop2][pos] >= length) {
+			arrayofindex[loop2][pos] = 0;
 			pos++;
 		}
 	}
@@ -229,10 +197,10 @@ void Generateur::gen_tacking(int t, int loop2, char *word) {
 				if(pos <= mpl / 2)
 					break;
 			}
-			if(++arrayofindex[t][loop2][pos] >= length)
-				arrayofindex[t][loop2][pos] = 0;
+			if(++arrayofindex[loop2][pos] >= length)
+				arrayofindex[loop2][pos] = 0;
 			else break;
 		}
 	}
-	tacke[t][loop2]++;
+	tacke[loop2]++;
 }

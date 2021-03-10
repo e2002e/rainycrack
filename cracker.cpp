@@ -7,6 +7,7 @@
 #include "cracker.h"
 #include "md5.h"
 #include "pot.h"
+#include "simd-intrinsics.h"
 
 extern bool addnl;
 extern Fl_Multiline_Output *output;
@@ -140,7 +141,8 @@ bool Cracker::hash_check(char *message) {
 	for(int h=0; h<H; ++h) {
 		if(md5[h]) {
 			done = false;
-			if(memcmp(hash, md5[h], sizeof(hash)) == 0) {
+			if(memcmp(hash, md5[h], sizeof(hash)) == 0) 
+			{
 				//display related
 				const char *previous = output->value();
 				char tmp[strlen(previous)+strlen(message)+33];
