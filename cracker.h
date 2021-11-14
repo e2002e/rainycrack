@@ -1,3 +1,4 @@
+#include "md5.h"
 class Cracker {
 	public:
 	~Cracker();
@@ -6,7 +7,6 @@ class Cracker {
 	bool import_hashes();
 	char *filename;
 	bool hash_check(char *);
-	
 	private:
 	int H;
 	char **hashlist;

@@ -5,9 +5,7 @@
 #include <FL/fl_ask.H>
 #include <FL/Fl_Multiline_Output.H>
 #include "cracker.h"
-#include "md5.h"
 #include "pot.h"
-#include "simd-intrinsics.h"
 
 extern bool addnl;
 extern Fl_Multiline_Output *output;
@@ -15,13 +13,12 @@ extern Pot *pot;
 bool addnl;
 
 bool Cracker::import_hashes() {
+	H = 0;
 	FILE *fd = fopen(filename, "r");
 	if(fd == NULL) {
 		fl_message("Check your file's path");
-		delete filename;
 		return 1;
 	}
-	H = 0;
 	do {
 		int c = getc(fd);
 		if(c == '\n') H++;
@@ -34,7 +31,7 @@ bool Cracker::import_hashes() {
 	for(int i=0; i<H; ++i) {
 		tmphashlist[i] = new char[33];
 		fread(tmphashlist[i], 33, 1, fd);
-		tmphashlist[i][32] = 0;
+		tmphashlist[i][32] = '\0';
 	}
 	fclose(fd);
 
@@ -55,10 +52,10 @@ bool Cracker::import_hashes() {
 	fread(buff, size, 1, found);
 	fclose(found);
 	int a = 0;
-
+	//strtok modifies the source so we duplicate our hashes buffer
 	char *buff2 = new char[size];
 
-	//We only do this to get the value a used to allocate arrays, and we'll repeat the procedure to fill these up.
+	//We only do this to get the value 'a' used to allocate arrays, and we'll repeat the procedure to fill these up.
 	for(int i=0; i<H; i++) {
 		bool add = true;
 		strcpy(buff2, buff);
@@ -115,40 +112,47 @@ bool Cracker::import_hashes() {
 				char tmp2[9], tmp3[9];
 				strcpy(tmp2, &hashlist[a][j*8]);
 				tmp2[8] = 0;
+				//little endian byteorder
 				for(int k=0; k<8; k++) {
 					tmp3[k] = tmp2[7-k];
 				}
+
 				tmp3[8] = 0;
+
 				for(int k=0; k<8; k+=2) {
 					char c = tmp3[k];
 					tmp3[k] = tmp3[k+1];
 					tmp3[k+1] = c;
 				}
-				md5[a][j] = strtol((char*)tmp3, NULL, 16);
+				md5[a][j] = strtoul((char*)tmp3, NULL, 16);
+				//printf("%d", md5[a][j]);
 			}
+			//printf("\n");
+			//printf("%s\n", hashlist[a]);
 			a++;
+			
 		}
 	}
 	H = a;
 	delete [] tmphashlist;
 	return 0;
 }
+uint32_t hash[4];
 
 bool Cracker::hash_check(char *message) {
-	uint32_t hash[4];
+	memset(hash, 0, sizeof(hash));
 	md5_hash((unsigned char*) message, strlen(message), hash);	
 	bool done = true;
 	for(int h=0; h<H; ++h) {
 		if(md5[h]) {
 			done = false;
-			if(memcmp(hash, md5[h], sizeof(hash)) == 0) 
-			{
-				//display related
+			if(memcmp(hash, md5[h], sizeof(hash)) == 0) {
+				/*display related*/
 				const char *previous = output->value();
 				char tmp[strlen(previous)+strlen(message)+33];
 				strcpy(tmp, previous);
 				strcpy(&tmp[strlen(previous)], "\n");
-				strcpy(&tmp[strlen(previous)+addnl], hashlist[h]);
+				strcpy(&tmp[strlen(previous)+addnl], hashlist[h]);//not addnl overrides the newline
 				strcpy(&tmp[strlen(previous)+32+addnl], ":");
 				strcpy(&tmp[strlen(previous)+33+addnl], message);
 				//once one line has been written we always add a newline.
@@ -167,8 +171,7 @@ bool Cracker::hash_check(char *message) {
 }
 
 Cracker::~Cracker() {
-	if(crack) 
-	{
+	if(crack && H > 0) {
 	 	delete [] hashlist;
 		delete [] md5;
 	}

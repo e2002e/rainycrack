@@ -8,13 +8,13 @@
 #include <thread>
 #include <mutex>
 #include <FL/Fl.H>
+#include <FL/Fl_Progress.H>
 #include <FL/fl_ask.H>
 #include <FL/Fl_File_Input.H>
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Menu_Button.H>
 #include <FL/Fl_Spinner.H>
-#include <FL/Fl_Progress.H>
 #include <FL/Fl_Timer.H>
 #include <FL/Fl_Multiline_Output.H>
 #include <FL/Fl_Scroll.H>
@@ -22,25 +22,23 @@
 #include "generateur.h"
 #include "cracker.h"
 #include "pot.h"
+#include "ui_options.h"
+
+Generateur *generateur;
+Fl_Progress *progress;
+uint_big Total;
+
+void get_status(void *) {
+	progress->value((float) generateur->Counter /  (float) Total * 100.0f);
+	Fl::repeat_timeout(2.0, get_status);
+}
 
 bool stop;
 std::mutex c, p;
 int mt;
 int wwidth = Fl::w() / 2;
 int wheight = Fl::h() / 2;
-	
 
-class Ui_options {
-	public:
-	int min;
-	int max;
-	char *set;
-	char *hashfile;
-	bool crack;
-	bool restore;
-};
-
-Generateur *generateur;
 Cracker *cracker;
 Pot *pot;
 Ui_options *options;
@@ -53,23 +51,16 @@ Fl_Button *pbutton;
 Fl_Button *cbutton;
 Fl_File_Input *file;
 Fl_Menu_Button *atype;
-
 //Status
-Fl_Progress *progress;
 Fl_Multiline_Output *output;
-uint_big Total;
 bool method = 0;
 
 extern uint_big powi(uint32_t b, uint32_t p);
 
-void get_status(void *) {
-	progress->value((float) generateur->Counter /  (float) Total * 100.0f);
-	Fl::repeat_timeout(2.0, get_status);
-}
-
 void generate() {	
 	/*we are looping on the different lengths twice, once outside and once inside the main iteration for which we tweak
 	the bound with subtotal*/
+	char word[32];
 	int mmm = generateur->max-generateur->min;
 	for(generateur->loop=generateur->L; generateur->loop <= mmm; ++generateur->loop) {
 		int mpl = generateur->min+generateur->loop;
@@ -90,20 +81,24 @@ void generate() {
 			}
 			//s.unlock();
 			//the inner loop on the lengths
-			for(int loop2 = generateur->loop; loop2 <= mmm; ++loop2) {
+			for(int loop2 = generateur->loop; loop2 <= mmm; ++loop2) {	
 				//s1.lock();
 				if(stop) {
 					generateur->save();
 					goto end;
 				}
-				char word[32];
-				memset(word, 0, sizeof(word));
 				//s1.unlock();
-				if(method == 0)
-					generateur->gen_tacking(loop2, word);
-				else
-					generateur->gen_rain(loop2, word);
-
+				switch(method) {
+					case 0:
+						generateur->gen_tacking(loop2, word);
+						break;
+					case 1:
+						generateur->gen_rain(loop2, word);
+						break;
+					//case 2:
+					//	generateur-gen_inc(loop2, word);
+					//	break;
+				}
 				if(cracker->crack) {
 					if(cracker->hash_check(word)) {
 						stop = true;
@@ -112,9 +107,11 @@ void generate() {
 						//p.unlock();
 					}						
 				}
-				else
-					printf("%s\n", word);
-
+				else {
+					for(int i=0; i<strlen(word); i++)
+						printf("%c", word[i]);
+					printf("\n");
+				}
 				//c.lock();
 				generateur->Counter++;
 				//c.unlock();
@@ -157,44 +154,47 @@ void run_button(Fl_Widget *widget, void *) {
 	pot = new Pot;
 	
 	if(options->restore) {
-		if(generateur->restore())
-			return;		
+		if(generateur->restore()) {
+			delete generateur;
+			delete cracker;
+			delete pot;
+			return;
+		}
 	}
 	else {
-		generateur->min = options->min;
-		generateur->max = options->max;
-		generateur->length = strlen(options->set);
-		
-		if(method == 0)
+		if(method == 0) {
 			if(generateur->length % 2) {
 				fl_message("Tacking doesn't work with odd character set's length");
 				return;
 			}
+		}
 		cracker->crack = options->crack;
 		if(cracker->crack) {
 			cracker->filename = new char[strlen(file->value())];
 			memset(cracker->filename, '\0', sizeof(cracker->filename));
 			strcpy(cracker->filename, file->value());
 			if(cracker->filename == NULL) {
-				delete cracker->filename;
+				delete generateur;
+				delete cracker;
+				delete pot;
 				return;
 			}
-			if(cracker->import_hashes())
-				return;//memory will be freed inside this function if failure occurs
+			if(cracker->import_hashes()) {
+				delete generateur;
+				delete cracker;
+				delete pot;
+				return;//memory for hashes will be freed inside this function if failure occurs. 
+			}
 		}
-		//from here there is no input error possible
-		generateur->arrayofchars = new char[generateur->length];
-		strcpy(generateur->arrayofchars, options->set);
-		generateur->split_work();
 	}
-	//not setting these will write wrong values in the restore file if no multithreading is used.
+	//??not setting these will write wrong values in the restore file if no multithreading is used.
 	int mmm = generateur->max-generateur->min;
 	generateur->loop = 0;
 	generateur->a = 0;
 	Total = 0;
 	for(int c=0; c<=mmm; ++c)
 		Total += powi(generateur->length, c+generateur->min);
-	
+
 	stop = false;
 	widget->deactivate();
 	Fl::add_timeout(2.0, get_status);
@@ -235,10 +235,11 @@ void set_crack(Fl_Widget *button, void *) {
 
 void set_method(Fl_Widget *w, void *i) {
 	Fl_Menu_Button *menu = (Fl_Menu_Button *)w;
-	method = menu->value();
+	method = (bool) i;
+	//printf("%d\n", method);
 }
 
-const Fl_Menu_Item algo[] = {{"Tacking", 0, set_method}, {"Rain", 0, set_method}, {0}};
+const Fl_Menu_Item algo[] = {{"Tacking", 0, set_method, (void*) 0}, {"Rain", 0, set_method, (void*) 1}, {0}};
 
 int main(int argc, char *argv[]) {
 	options = new Ui_options;

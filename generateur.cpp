@@ -5,10 +5,12 @@
 #include <FL/fl_ask.H>
 #include "generateur.h"
 #include "cracker.h"
+#include "ui_options.h"
 
 extern Cracker *cracker;
 extern int mt;
 extern bool method;
+extern Ui_options *options;
 
 //this function is from john/subsets.c
 uint_big powi(uint32_t b, uint32_t p)
@@ -64,12 +66,22 @@ uint_big str2big(char *str) {
 	return num;
 }
 
+Generateur::Generateur() {
+	min = options->min;
+	max = options->max;
+	length = strlen(options->set);
+
+	arrayofchars = new char[length];
+	strcpy(arrayofchars, options->set);
+	split_work();
+}
+
 Generateur::~Generateur() {
 	delete [] arrayofindex;
 	delete arrayofchars;
 	delete tacke;
 }
-
+		
 bool Generateur::restore() {
 	FILE *fd = fopen("restore", "r");
 	if(fd == NULL) {
@@ -161,10 +173,10 @@ void Generateur::save() {
 }
 
 void Generateur::gen_rain(int loop2, char *word) {
-	short unsigned int mpl = Generateur::min+loop2;
+	short unsigned int mpl = min+loop2;
 	for(int i=0; i<mpl; i++)
 		word[i] = arrayofchars[arrayofindex[loop2][i]];
-	word[mpl] = 0;
+	word[mpl] = '\0';
 	
 	for(int x=0; x < mpl; ++x) {
 		if(++arrayofindex[loop2][x] >= length) {
