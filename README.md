@@ -13,7 +13,7 @@ This is total mangling, you better use this one. Will find less password that ma
 
 I'm not matching jtr/hashcat's speed as not using simd.  
 Also there is a big drop in perf when the hash file is 'too big'.  
-Please use my fork of JohnTheRipper featuring the 'rain' alonside the 'tacking' method. 
+**Please use my fork of JohnTheRipper instead**. 
 
 
 
