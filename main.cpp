@@ -16,7 +16,8 @@
 #include <FL/Fl_Menu_Button.H>
 #include <FL/Fl_Spinner.H>
 #include <FL/Fl_Timer.H>
-#include <FL/Fl_Multiline_Output.H>
+#include <FL/Fl_Text_Display.H>
+#include <FL/Fl_Text_Buffer.H>
 #include <FL/Fl_Scroll.H>
 
 #include "generateur.h"
@@ -52,7 +53,8 @@ Fl_Button *cbutton;
 Fl_File_Input *file;
 Fl_Menu_Button *atype;
 //Status
-Fl_Multiline_Output *output;
+Fl_Text_Display *output;
+Fl_Text_Buffer *buff;
 bool method = 0;
 
 extern uint_big powi(uint32_t b, uint32_t p);
@@ -125,7 +127,7 @@ void generate() {
 //joining inside the button callback locks the ui
 void generate_wrapper(Fl_Widget *widget) {
 	generate();
-	if(!stop)//when we force the progress to 100%, stop is set, so don't overwrite it.
+	if(!stop) //when we force the progress to 100%, stop is set, so don't overwrite it.
 		get_status(NULL);
 	output->redraw();
 	progress->redraw();
@@ -297,8 +299,10 @@ int main(int argc, char *argv[]) {
 
 	cbutton->callback(set_crack);
 
-	output = new Fl_Multiline_Output(wwidth/32, wheight/2+wheight/4, wwidth-wwidth/16, wheight/4-wheight/32);
+	output = new Fl_Text_Display(wwidth/32, wheight/2+wheight/4, wwidth-wwidth/16, wheight/4-wheight/32);
+	buff = new Fl_Text_Buffer();
 	output->align(FL_ALIGN_BOTTOM);
+	output->buffer(buff);
 
 	window->end();
 	window->show(argc, argv);

@@ -3,12 +3,14 @@
 #include <cstdlib>
 #include <omp.h>
 #include <FL/fl_ask.H>
-#include <FL/Fl_Multiline_Output.H>
+#include <FL/Fl_Text_Display.H>
+#include <FL/Fl_Text_Buffer.H>
 #include "cracker.h"
 #include "pot.h"
 
 extern bool addnl;
-extern Fl_Multiline_Output *output;
+extern Fl_Text_Buffer *buff;
+extern Fl_Text_Display *output;
 extern Pot *pot;
 bool addnl;
 
@@ -148,20 +150,19 @@ bool Cracker::hash_check(char *message) {
 			done = false;
 			if(memcmp(hash, md5[h], sizeof(hash)) == 0) {
 				/*display related*/
-				const char *previous = output->value();
-				char tmp[strlen(previous)+strlen(message)+33];
-				strcpy(tmp, previous);
-				strcpy(&tmp[strlen(previous)], "\n");
-				strcpy(&tmp[strlen(previous)+addnl], hashlist[h]);//not addnl overrides the newline
-				strcpy(&tmp[strlen(previous)+32+addnl], ":");
-				strcpy(&tmp[strlen(previous)+33+addnl], message);
-				//once one line has been written we always add a newline.
-				addnl = true;
-				int pos = output->position();
-				output->value(tmp);
-				output->position(pos);
+				const char *previous = buff->text();
+				char tmp[strlen(message) + 33];//pass + md5hash + nl;
+				char *p = tmp;
+				strcpy(p, hashlist[h]);
+				p += strlen(hashlist[h]);
+				strcpy(p, ":");
+				p ++;
+				strcpy(p, message);
+				p += strlen(message);
+				strcpy(p, "\n");
+				output->insert(tmp);
+				output->show_insert_position();
 				pot->save(hashlist[h], message);
-				//delete
 				md5[h] = NULL;
 				//delete md5[h];
 			}
